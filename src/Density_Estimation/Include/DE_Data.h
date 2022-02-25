@@ -142,5 +142,77 @@ class DEData{
 
 };
 
+/*! @brief An IO handler class for objects passed from R.
+ * This class, given the temporal data from R, converts them in a C++ format, offering a
+ * series of method for their access, isolating the more possible the specific
+ * code for R/C++ data conversion.
+*/
+// This class is used to manage temporal data in spatio-temporal density estimation problems.
+class DEData_time {
+private:
+    // Time observations during which spatial locations are observed (ordered as they appear in the clean dataset,
+    // possibly with duplicates).
+    std::vector<Real> data_time_;
+    // Time observations in chronological order and without duplicates.
+    std::vector<Real> times_;
+    // Penalization parameters (in time). The best one is chosen with k fold cross validation.
+    std::vector<Real> lambda_time_;
+    // Data structure connecting time indices (with respect to the chronological order) to the positions of locations
+    // (ordered as data appear in the clean dataset) that are observed at the time instants indexed as above.
+    // This structure is useful to build the Upsilon_ FEmatrix in the DataProblem_time class.
+    std::vector<std::vector<UInt>> Times2Locations_;
+
+    // Auxiliary methods used in the constructor.
+    void setDataTime(SEXP Rdata_time);
+    void setLambdaTime(SEXP Rlambda_time);
+
+public:
+    // Constructors
+    DEData_time(){};
+
+    explicit DEData_time(const std::vector<Real>& data_time, const std::vector<Real>& lambda_time);
+
+    /*! Constructor useful for the R/C++ interface.
+        It initializes the object storing the R given objects.
+        \param Rdata_time an R-vector containing the time observations.
+        \param Rlambda_time an R-vector containing the penalization terms (in time).
+    */
+    explicit DEData_time(SEXP Rdata_time, SEXP Rlambda_time);
+
+    //! A method to generate the Times2Locations_ and times_ data structures.
+    // This method is public because it is called after the data cleaning stage, which is performed in the
+    // Data_Problem_time class (after spatial mesh and temporal mesh are provided).
+    void setTimes2Locations();
+
+    // Getters
+    //! A method to access the data.
+    std::vector<Real>& data() {return data_time_;}
+    //! A const method to access the data.
+    const std::vector<Real>& data() const {return data_time_;}
+    //! A const method to access the Times2Locations_ data structure at the i-th time index.
+    const std::vector<UInt>& getTimes2Locations(UInt i) const {return Times2Locations_[i];}
+    //! A method to access the data (without duplicates).
+    std::vector<Real>& times() {return times_;}
+    //! A const method to access the data (without duplicates).
+    const std::vector<Real>& times() const {return times_;}
+    //! A const method to access the i-th time data.
+    const Real time(UInt i) const {return times_.size()!=0 ? times_[i] : data_time_[i];}
+    //! A method returning the number of distinct time data.
+    UInt getNTimes() const {return times_.size()!=0 ? times_.size() : data_time_.size();}
+    //! A method returning the number of observations.
+    UInt dataSize() const {return data_time_.size();}
+    //! A method returning the penalization parameters (in time).
+    Real getLambda_time(UInt i) const {return lambda_time_[i];}
+    //! A method returning the number of lambdas (in time).
+    UInt getNlambda_time() const {return lambda_time_.size();}
+
+    // Print
+    //! A method printing data.
+    void printData(std::ostream& out) const;
+    //! A method printing the Times2Locations_ data structure.
+    void printTimes2Locations(std::ostream& out) const;
+};
+
+
 #include "DE_Data_imp.h"
 #endif
