@@ -103,8 +103,8 @@ FunctionalProblem_time<ORDER, mydim, ndim>::computeIntegrals(const VectorXr& g) 
     const MatrixXr& PsiQuad = dataProblem_time_.getPsiQuad(); // PsiQuad is the same matrix at any time interval
     UInt global_idx = 0; // Index that keeps track of the first B-spline basis function that is active in the current time-interval
 
-//omp_set_num_threads(dataProblem_time_.getNThreads_int()); // set the number of threads
-//#pragma omp parallel for reduction(+: int1) reduction (+:global_idx) reduction(sumVectorXd: int2)
+omp_set_num_threads(dataProblem_time_.getNThreads_int()); // set the number of threads
+#pragma omp parallel for reduction(+: int1) reduction (+:global_idx) reduction(sumVectorXd: int2)
 
     for (int time_step = 0; time_step < dataProblem_time_.getNumNodes_time()-1;  ++time_step) {
         MatrixXr PhiQuad = dataProblem_time_.fillPhiQuad(time_step); //PhiQuad changes at each time interval

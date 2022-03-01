@@ -232,6 +232,7 @@ void DataProblem_time<ORDER, mydim, ndim>::fillGlobalPhi()
 template<UInt ORDER, UInt mydim, UInt ndim>
 void DataProblem_time<ORDER, mydim, ndim>::fillTimeMass(void)
 {
+    Spline<SPLINE_DEGREE, 0> spline_0(mesh_time_);
     Assembler::operKernel(spline_, K0_);
 }
 
@@ -295,7 +296,6 @@ void DataProblem_time<ORDER, mydim, ndim>::setDataHeat()
     const UInt M = getSplineNumber();
     data_Heat_.resize(M);
 
-    //! ### POSSIBLE PARALLELIZATION via openMP ###
     for (int i = 0; i < deData_time_.getNTimes(); ++i) {
         for (int j = 0; j < M; ++j) {
             if(spline_.BasisFunction(j, deData_time_.time(i)) != 0) //alternative: std::abs(spline_.BasisFunction(j, data_time_[i])) >= tol)
