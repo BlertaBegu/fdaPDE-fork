@@ -218,6 +218,7 @@ public:
     const std::vector<Real>& getMesh_time() const {return mesh_time_;}
     //! A method returning the number of time mesh nodes.
     UInt getNumNodes_time() const {return mesh_time_.size();}
+
 };
 
 #include "Data_Problem_imp.h"

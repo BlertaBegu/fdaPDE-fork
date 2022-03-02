@@ -98,12 +98,8 @@ FunctionalProblem_time<ORDER, mydim, ndim>::computeIntegrals(const VectorXr& g) 
     VectorXr int2 = VectorXr::Zero(dataProblem_time_.getNumNodes()*dataProblem_time_.getSplineNumber());
     const MatrixXr& PsiQuad = dataProblem_time_.getPsiQuad(); // PsiQuad is the same matrix at any time interval
 
-    if(dataProblem_time_.getNfolds()>1)
-        omp_set_num_threads(1); // set the number of threads
-    else
-        omp_set_num_threads(2);
-
-#pragma omp parallel for reduction(+: int1) reduction(sumVectorXd: int2)
+omp_set_num_threads(2);
+#pragma omp parallel for reduction(+: int1) reduction(sumVectorXd: int2) schedule(dynamic)
 
     for (int time_step = 0; time_step < dataProblem_time_.getNumNodes_time()-1;  ++time_step) {
         MatrixXr PhiQuad = dataProblem_time_.fillPhiQuad(time_step); //PhiQuad changes at each time interval
