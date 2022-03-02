@@ -98,7 +98,7 @@ grid <- expand.grid(X, Y)
 
 FEMfunction = FEM.time(sol$f_init[,1,1], mesh_time, FEMbasis, FLAG_PARABOLIC = FALSE)
 evaluation <- eval.FEM.time(FEM.time = FEMfunction, locations = grid, time.instants = t)
-image2D(x = X, y = Y, z = matrix(exp(evaluation), n, n), col = heat.colors(100),
+image2D(x = X, y = Y, z = matrix(evaluation, n, n), col = heat.colors(100),
         xlab = "", ylab = "", contour = list(drawlabels = FALSE),
         main = paste("Initial guess at t = ", t), zlim=c(0,0.2), asp = 1)
 

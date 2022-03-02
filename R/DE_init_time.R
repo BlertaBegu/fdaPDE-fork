@@ -64,7 +64,7 @@
 #' lambda = 0.1
 #' lambda_time <- 0.001
 #' sol = DE.heat.FEM.time(data = locations, data_time = times, FEMbasis = FEMbasis, mesh_time = mesh_time, lambda = lambda, lambda_time = lambda_time,
-#'                        heatStep=0.1, heatIter=50, init="Heat")
+#'                        heatStep=0.1, heatIter=10, init="Heat")
 #'
 #' ## Visualization
 #'
@@ -75,7 +75,7 @@
 #'
 #' FEMfunction = FEM.time(sol$f_init[,1,1], mesh_time, FEMbasis, FLAG_PARABOLIC = FALSE)
 #' evaluation <- eval.FEM.time(FEM.time = FEMfunction, locations = grid, time.instants = t)
-#' image2D(x = X, y = Y, z = matrix(exp(evaluation), n, n), col = heat.colors(100),
+#' image2D(x = X, y = Y, z = matrix(evaluation, n, n), col = heat.colors(100),
 #'         xlab = "", ylab = "", contour = list(drawlabels = FALSE),
 #'         main = paste("Initial guess at t = ", t), zlim=c(0,0.2), asp = 1)
 #'
