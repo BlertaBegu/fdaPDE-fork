@@ -32,6 +32,10 @@
 #include <Eigen/IterativeLinearSolvers>
 #define  EIGEN_MPL2_ONLY
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 typedef double Real;
 typedef int UInt;
 

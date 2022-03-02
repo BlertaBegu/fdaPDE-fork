@@ -230,6 +230,11 @@ std::tuple<VectorXr, Real, Real> CrossValidation_time<ORDER, mydim, ndim>::perfo
     }
 
     // Cycle on the folds
+    if(K<4)
+        omp_set_num_threads(2);
+    else
+        omp_set_num_threads(1);
+#pragma omp parallel for
     for (UInt i = 0; i < K; i++){
 
         if(this->dataProblem_.Print()) {
@@ -310,6 +315,11 @@ void RightCrossValidation_time<ORDER, mydim, ndim>::performCV_core(UInt fold, co
                                                                    const SpMat& Upsilon_valid)
 {
 
+    if(this->dataProblem_.getNfolds()>=4)
+        omp_set_num_threads(2);
+    else
+        omp_set_num_threads(1);
+#pragma omp parallel for
     for (UInt l = 0; l < this->dataProblem_.getNlambda() * this->dataProblem_.getNlambda_time(); ++l) {
 
         UInt l_S = static_cast<UInt>(l / this->dataProblem_.getNlambda_time());
