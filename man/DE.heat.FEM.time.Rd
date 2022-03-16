@@ -5,7 +5,7 @@
 \title{Spatio-temporal density initialization}
 \usage{
 DE.heat.FEM.time(data, data_time, FEMbasis, mesh_time, lambda=NULL, lambda_time=NULL, heatStep=0.1, heatIter=10,
-                        init="Heat", nFolds=5, search="tree", isTimeDiscrete=0, flagMass=0, flagLumped=0)
+                 init="Heat", nFolds=5, search="tree", isTimeDiscrete=0, flagMass=0, flagLumped=0)
 }
 \arguments{
 \item{data}{A matrix of dimensions #observations-by-ndim. Data are locations: each row corresponds to one point,
@@ -26,7 +26,7 @@ and, if ndim=3, the third column corresponds to the \code{z}-coordinates.}
 
 \item{heatStep}{A real specifying the time step for the discretized heat diffusion process.}
 
-\item{heatIter}{An integer specifying the number of iteriations to perform the discretized heat diffusion process.}
+\item{heatIter}{An integer specifying the number of iterations to perform the discretized heat diffusion process.}
 
 \item{init}{A string specifying the initialization procedure. It can be either 'Heat' or 'CV'.}
 
