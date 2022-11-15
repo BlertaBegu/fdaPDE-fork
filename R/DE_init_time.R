@@ -10,10 +10,10 @@
 #' (interval). Its nodes are in increasing order.
 #' @param lambda A scalar or vector of smoothing parameters in space. Default is NULL. It is useful only if \code{init='Heat'}.
 #' @param lambda_time A scalar or vector of smoothing parameters in time. Default is NULL. It is useful only if \code{init='Heat'}.
-#' @param heatStep A real specifying the time step for the discretized heat diffusionn process.
+#' @param heatStep A real specifying the time step for the discretized heat diffusion process.
 #' @param heatIter An integer specifying the number of iteriations to perform the discretized heat diffusion process.
 #' @param init A string specifying the initialization procedure. It can be either 'Heat' or 'CV'.
-#' @param nFolds An integer specifying the number of folds used in the cross validation techinque. It is useful only
+#' @param nFolds An integer specifying the number of folds used in the cross validation technique. It is useful only
 #' for the case \code{init = 'CV'}.
 #' @param search A flag to decide the search algorithm type (tree or naive or walking search algorithm).
 #' @param isTimeDiscrete A boolean specifying the time data type: \code{TRUE} for discrete (with many duplicates) time data;
@@ -28,8 +28,8 @@
 #' for each possible pair (\code{lambda}, \code{lambda_time}). If \code{init = 'CV'} it returns the initial vector associated
 #' to the unique pair (\code{lambda}, \code{lambda_time}) given.
 #' @description This function implements two methods for the density initialization procedure.
-#' @usage DE.heat.FEM.time(data, data_time, FEMbasis, mesh_time, lambda=NULL, lambda_time=NULL, heatStep=0.1, heatIter=500,
-#'                         init="Heat", nFolds=5, search="tree", isTimeDiscrete=0, flagMass=0, flagLumped=0)
+#' @usage DE.heat.FEM.time(data, data_time, FEMbasis, mesh_time, lambda=NULL, lambda_time=NULL, heatStep=0.1, heatIter=10,
+#'                  init="Heat", nFolds=5, search="tree", isTimeDiscrete=0, flagMass=0, flagLumped=0)
 #' @export
 #' @examples
 #' library(fdaPDE)
@@ -50,7 +50,7 @@
 #' ## Generate data
 #' n <- 1000
 #' set.seed(10)
-#' locations <- mvtnorm::rmvnorm(1, mean=c(0,0), sigma=diag(2))
+#' locations <- mvtnorm::rmvnorm(n, mean=c(0,0), sigma=diag(2))
 #' times <- runif(n,0,1)
 #' data <- cbind(locations, times)
 #'
@@ -63,28 +63,25 @@
 #' ## Density initialization
 #' lambda = 0.1
 #' lambda_time <- 0.001
-#' sol = DE.heat.FEM_time(data = locations, data_time = times, FEMbasis = FEMbasis, lambda = lambda, lambda_time = lambda_time,
-#'                        heatStep=0.1, heatIter=500, init="Heat")
+#' sol = DE.heat.FEM.time(data = locations, data_time = times, FEMbasis = FEMbasis, mesh_time = mesh_time, lambda = lambda, lambda_time = lambda_time,
+#'                        heatStep=0.1, heatIter=10, init="Heat")
 #'
 #' ## Visualization
-#'
-#' plot(FEM(coeff=sol$f_init, FEMbasis=FEMbasis))
 #'
 #' n = 100
 #' X <- seq(-3, 3, length.out = n)
 #' Y <- seq(-3, 3, length.out = n)
 #' grid <- expand.grid(X, Y)
 #'
-#' FEMfunction = FEM.time(sol, mesh_time, FEMbasis, FLAG_PARABOLIC = FALSE)
+#' FEMfunction = FEM.time(sol$f_init[,1,1], mesh_time, FEMbasis, FLAG_PARABOLIC = FALSE)
 #' evaluation <- eval.FEM.time(FEM.time = FEMfunction, locations = grid, time.instants = t)
-#' image2D(x = X, y = Y, z = matrix(exp(evaluation), n, n), col = heat.colors(100),
-#'         xlab = "x", ylab = "y", contour = list(drawlabels = FALSE),
-#'         main = paste("Estimated density at t = ", t), zlim=c(0,0.2), asp = 1)
+#' image2D(x = X, y = Y, z = matrix(evaluation, n, n), col = heat.colors(100),
+#'         xlab = "", ylab = "", contour = list(drawlabels = FALSE),
+#'         main = paste("Initial guess at t = ", t), zlim=c(0,0.2), asp = 1)
 #'
-#' plot(FEMfunction, 0.5)
 
 DE.heat.FEM.time <- function(data, data_time, FEMbasis, mesh_time, lambda=NULL, lambda_time=NULL, heatStep=0.1,
-                             heatIter=500, init="Heat", nFolds=5, search="tree", isTimeDiscrete=FALSE, flagMass=FALSE, flagLumped=FALSE)
+                             heatIter=10, init="Heat", nFolds=5, search="tree", isTimeDiscrete=FALSE, flagMass=FALSE, flagLumped=FALSE)
 {
   if(class(FEMbasis$mesh) == "mesh.2D"){
     ndim = 2
@@ -104,9 +101,6 @@ DE.heat.FEM.time <- function(data, data_time, FEMbasis, mesh_time, lambda=NULL, 
   tol1=NULL
   tol2=NULL
   print=NULL
-  nThreads_int=NULL
-  nThreads_l=NULL
-  nThreads_fold=NULL
   nfolds=NULL
   nsimulations=NULL
   step_method=NULL
@@ -147,23 +141,36 @@ DE.heat.FEM.time <- function(data, data_time, FEMbasis, mesh_time, lambda=NULL, 
 
     bigsol = CPP_FEM.DE_init_time(data, data_time, FEMbasis, mesh_time, lambda, lambda_time, fvec, heatStep, heatIter, ndim,
                                   mydim, step_method, direction_method, preprocess_method, stepProposals, tol1, tol2, print,
-                                  nThreads_int, nThreads_l, nThreads_fold, nfolds, nsimulations, search, isTimeDiscrete, flagMass, flagLumped, init, nFolds)
+                                  nfolds, nsimulations, search, isTimeDiscrete, flagMass, flagLumped, init, nFolds)
 
   } else if(class(FEMbasis$mesh) == 'mesh.2.5D'){
 
     bigsol = CPP_FEM.manifold.DE_init_time(data, data_time, FEMbasis, mesh_time, lambda, lambda_time, fvec, heatStep, heatIter, ndim,
                                            mydim, step_method, direction_method, preprocess_method, stepProposals, tol1, tol2, print,
-                                           nThreads_int, nThreads_l, nThreads_fold, nfolds, nsimulations, search, isTimeDiscrete, flagMass, flagLumped, init, nFolds)
+                                           nfolds, nsimulations, search, isTimeDiscrete, flagMass, flagLumped, init, nFolds)
 
   } else if(class(FEMbasis$mesh) == 'mesh.3D'){
     bigsol = CPP_FEM.volume.DE_init_time(data, data_time, FEMbasis, mesh_time, lambda, lambda_time, fvec, heatStep, heatIter, ndim,
                                          mydim, step_method, direction_method, preprocess_method, stepProposals, tol1, tol2, print,
-                                         nThreads_int, nThreads_l, nThreads_fold, nfolds, nsimulations, search, isTimeDiscrete, flagMass, flagLumped, init, nFolds)
+                                         nfolds, nsimulations, search, isTimeDiscrete, flagMass, flagLumped, init, nFolds)
   }
 
   ################################################### Collect Results ##################################################
 
-  f_init = bigsol[[1]]
+  N = nrow(FEMbasis$mesh$nodes)
+  SPLINE_DEGREE = 3
+  M = length(mesh_time) + SPLINE_DEGREE - 1
+
+  dim_1 = length(lambda)
+  dim_2 = length(lambda_time)
+
+  order <- c()
+  for(i in 1:dim_2) {
+    o <- seq(i,dim_1*dim_2,by=dim_2)
+    order <- c(order, o)
+  }
+
+  f_init = array(data = bigsol[[1]][1:(N*M),order], dim = c(N*M,dim_1,dim_2))
 
   reslist = list(f_init = f_init)
   return(reslist)

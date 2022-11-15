@@ -17,12 +17,12 @@
 #include "../../FE_Assemblers_Solvers/Include/Finite_Element.h"
 #include "../../FE_Assemblers_Solvers/Include/Matrix_Assembler.h"
 
-// This file contains data informations for the Density Estimation problem
+// This file contains data information for the Density Estimation problem
 
-//! @brief A class to store common data for the problem.
+//! @brief A class to store common (spatial) data for the problem.
 template<UInt ORDER, UInt mydim, UInt ndim>
 class DataProblem{
-  protected:
+protected:
     using Integrator = typename DensityIntegratorHelper::Integrator<mydim>;
     static constexpr UInt EL_NNODES = how_many_nodes(ORDER,mydim);
     DEData<ndim> deData_;
@@ -36,69 +36,64 @@ class DataProblem{
     //! A method to compute the matrix which evaluates the basis function at the quadrature nodes.
     void fillPsiQuad();
 
-  public:
-    //! A constructor: it delegates DEData and MeshHandler costructors.
-    DataProblem(SEXP Rdata, SEXP Rorder, SEXP Rfvec, SEXP RheatStep, SEXP RheatIter, SEXP Rlambda, SEXP Rnfolds, SEXP Rnsim, SEXP RstepProposals,
-      SEXP Rtol1, SEXP Rtol2, SEXP Rprint, SEXP RnThreads_int, SEXP RnThreads_l, SEXP RnThreads_fold, SEXP Rsearch, SEXP Rmesh, bool isTime = 0);
+public:
+    //! A constructor: it delegates DEData and MeshHandler constructors.
+    DataProblem(SEXP Rdata, SEXP Rorder, SEXP Rfvec, SEXP RheatStep, SEXP RheatIter, SEXP Rlambda, SEXP Rnfolds,
+                SEXP Rnsim, SEXP RstepProposals, SEXP Rtol1, SEXP Rtol2, SEXP Rprint, SEXP Rsearch, SEXP Rmesh,
+                bool isTime = 0);
 
-    //! A method to compute the integral of a function.
+    //! A method to compute the integral of a function (over the spatial domain).
     Real FEintegrate(const VectorXr& f) const {return (R0_*f).sum();}
-    //! A method to compute the integral of the square of a function.
+    //! A method to compute the integral of the square of a function (over the spatial domain).
     Real FEintegrate_square(const VectorXr& f) const {return f.dot(R0_*f);}
-    //! A method to compute the integral of the exponential of a function.
+    //! A method to compute the integral of the exponential of a function (over the spatial domain).
     Real FEintegrate_exponential(const VectorXr& g) const;
     //! A method to compute the matrix which evaluates the basis function at the data points.
     SpMat computePsi(const std::vector<UInt>& indices) const;
 
-    //! A method to access the data. It calls the same method of DEData class.
-    const std::vector<Point<ndim> >& data() const {return deData_.data();}
+    // Getters
+	//! A method to access the data. It calls the same method of DEData class.
+    const std::vector<Point<ndim>>& data() const {return deData_.data();}
     //! A method returning a datum. It calls the same method of DEData class.
     const Point<ndim>& data(UInt i) const {return deData_.data(i);}
-
     //! A method returning the number of observations. It calls the same method of DEData class.
     UInt dataSize() const {return deData_.dataSize();}
 	//! A method returning the the input order. It calls the same method of DEData class.
-	UInt getOrder() const {return deData_.getOrder();}
+    UInt getOrder() const {return deData_.getOrder();}
 	//! A method returning the initial coefficients for the density. It calls the same method of DEData class.
-	VectorXr getFvec() const {return deData_.getFvec();}
+    VectorXr getFvec() const {return deData_.getFvec();}
 	//! A method returning a bool which says if there is a user's initial density. It calls the same method of DEData class.
-	bool isFvecEmpty() const {return deData_.isFvecEmpty();}
+    bool isFvecEmpty() const {return deData_.isFvecEmpty();}
     //! A method returning the heat diffusion process alpha parameter. It calls the same method of DEData class.
     Real getHeatStep() const {return deData_.getHeatStep();}
     //! A method returning the number of iterations for the heat diffusion process. It calls the same method of DEData class.
     UInt getHeatIter() const {return deData_.getHeatIter();}
-	//! A method returning the penalization parameters. It calls the same method of DEData class.
-	Real getLambda(UInt i) const {return deData_.getLambda(i);}
-	//! A method returning the number of lambdas. It calls the same method of DEData class.
-	UInt getNlambda()  const {return deData_.getNlambda();}
+	//! A method returning the penalization parameters (in space). It calls the same method of DEData class.
+    Real getLambda(UInt i) const {return deData_.getLambda(i);}
+	//! A method returning the number of lambdas (in space). It calls the same method of DEData class.
+    UInt getNlambda()  const {return deData_.getNlambda();}
 	//! A method returning the number of folds for CV. It calls the same method of DEData class.
-	UInt getNfolds()  const {return deData_.getNfolds();}
+    UInt getNfolds()  const {return deData_.getNfolds();}
 	//! A method returning the number of iterations to use in the optimization algorithm. It calls the same method of DEData class.
-	UInt getNsimulations() const {return deData_.getNsimulations();}
+    UInt getNsimulations() const {return deData_.getNsimulations();}
 	//! A method returning the number of parameters for fixed step methods. It calls the same method of DEData class.
-	UInt getNstepProposals() const {return deData_.getNstepProposals();}
+    UInt getNstepProposals() const {return deData_.getNstepProposals();}
 	//! A method returning a parameter for fixed step methods. It calls the same method of DEData class.
-	Real getStepProposals(UInt i) const {return deData_.getStepProposals(i);}
-    //! A method returning the tolerance for optimization algorithm first termination criteria. It calls the same method of DEData class.
+    Real getStepProposals(UInt i) const {return deData_.getStepProposals(i);}
+    //! A method returning the tolerance for optimization algorithm first termination criterion. It calls the same method of DEData class.
     Real getTol1() const {return deData_.getTol1();}
-    //! A method returning the tolerance for optimization algorithm second termination criteria. It calls the same method of DEData class.
+    //! A method returning the tolerance for optimization algorithm second termination criterion. It calls the same method of DEData class.
     Real getTol2() const {return deData_.getTol2();}
     //! A method returning the boolean print member. It calls the same method of DEData class.
     bool Print() const {return deData_.Print();}
-    //! A method returning the number of threads to use in the omp parallelization to compute integrals. It calls the same method of DEData class.
-    UInt getNThreads_int() const {return deData_.getNThreads_int();}
-    //! A method returning the number of threads to use in the omp parallelization to loop over smoothing parameters. It calls the same method of DEData class.
-    UInt getNThreads_l() const {return deData_.getNThreads_l();}
-    //! A method returning the number of threads to use in the omp parallelization to loop over folds during cross-validation. It calls the same method of DEData class.
-    UInt getNThreads_fold() const {return deData_.getNThreads_fold();}
     //! A method returning the integer that specifies the search algorithm type.
     UInt getSearch() const {return deData_.getSearch();}
 
-    //getter for mesh
+    // Getters for mesh
     //! A method returning the mesh.
     const MeshHandler<ORDER, mydim, ndim>& getMesh() const {return mesh_;}
-    //getter for specific mesh features
-    //! A method returning the number of mesh nodes. It calls the same method of MeshHandler class.
+    // Getters for specific mesh features
+    //! A method returning the number of mesh EL_NNODES. It calls the same method of MeshHandler class.
     UInt getNumNodes() const {return mesh_.num_nodes();}
     //! A method returning the number of mesh elements. It calls the same method of MeshHandler class.
     UInt getNumElements() const {return mesh_.num_elements();}
@@ -109,8 +104,8 @@ class DataProblem{
     //! A method returning the element in which the point in input is located. It calls the same method of MeshHandler class.
     Element<EL_NNODES,mydim,ndim> findLocation(const Point<ndim>& point) const {return mesh_.findLocation(point);}
 
-    //getter for matrices
-    //! A method returning the P matrix.
+    // Getters for matrices
+    //! A method returning the penalty matrix.
     MatrixXr getP() const {return P_;}
     //! A method returning the mass matrix.
     SpMat getMass() const {return R0_;}
@@ -119,8 +114,9 @@ class DataProblem{
     //! A method returning the PsiQuad_ matrix.
     const Eigen::Matrix<Real, Integrator::NNODES, EL_NNODES>& getPsiQuad() const {return PsiQuad_;}
     //! A method returning the GlobalPsi_ matrix.
-    SpMat getGlobalPsi() const {return GlobalPsi_;}
+    const SpMat& getGlobalPsi() const {return GlobalPsi_;}
 };
+
 
 //! @brief A class to store common (time) data for the problem.
 template<UInt ORDER, UInt mydim, UInt ndim>
@@ -168,9 +164,8 @@ public:
     //! A constructor: it delegates DataProblem, DEData_time and Spline constructors.
     DataProblem_time(SEXP Rdata, SEXP Rdata_time, SEXP Rorder, SEXP Rfvec, SEXP RheatStep, SEXP RheatIter, SEXP Rlambda,
                      SEXP Rlambda_time, SEXP Rnfolds, SEXP Rnsim, SEXP RstepProposals, SEXP Rtol1, SEXP Rtol2, SEXP Rprint,
-                     SEXP RnThreads_int, SEXP RnThreads_l, SEXP RnThreads_fold, SEXP Rsearch, SEXP Rmesh,
-                     const std::vector<Real>& mesh_time, SEXP RisTimeDiscrete, SEXP RflagMass, SEXP RflagLumped,
-                     bool isTime = 1);
+                     SEXP Rsearch, SEXP Rmesh, const std::vector<Real>& mesh_time, SEXP RisTimeDiscrete,
+                     SEXP RflagMass, SEXP RflagLumped, bool isTime = 1);
 
     //! A method to compute the integral of a function (over the temporal domain).
     Real FEintegrate_time(const VectorXr& f) const {return (kroneckerProduct(getTimeMass(), this->getMass())*f).sum();}
@@ -223,8 +218,8 @@ public:
     const std::vector<Real>& getMesh_time() const {return mesh_time_;}
     //! A method returning the number of time mesh nodes.
     UInt getNumNodes_time() const {return mesh_time_.size();}
-};
 
+};
 
 #include "Data_Problem_imp.h"
 

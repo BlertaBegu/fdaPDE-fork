@@ -187,5 +187,4 @@ struct IntegratorGaussP9 {
     static constexpr std::array<Real, NNODES> NODES{{-0.906179845938664, -0.538469310105683, 0, 0.538469310105683, 0.906179845938664}};
 };
 
-
 #endif

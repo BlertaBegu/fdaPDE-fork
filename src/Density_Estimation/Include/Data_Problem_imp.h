@@ -3,36 +3,36 @@
 
 template<UInt ORDER, UInt mydim, UInt ndim>
 DataProblem<ORDER, mydim, ndim>::DataProblem(SEXP Rdata, SEXP Rorder, SEXP Rfvec, SEXP RheatStep, SEXP RheatIter,
-  SEXP Rlambda, SEXP Rnfolds, SEXP Rnsim, SEXP RstepProposals, SEXP Rtol1, SEXP Rtol2, SEXP Rprint,
-  SEXP RnThreads_int, SEXP RnThreads_l, SEXP RnThreads_fold,SEXP Rsearch, SEXP Rmesh, bool isTime):
-  deData_(Rdata, Rorder, Rfvec, RheatStep, RheatIter, Rlambda, Rnfolds, Rnsim, RstepProposals, Rtol1, Rtol2, Rprint, Rsearch, RnThreads_int, RnThreads_l, RnThreads_fold),
-   mesh_(Rmesh, INTEGER(Rsearch)[0]){
+                                             SEXP Rlambda, SEXP Rnfolds, SEXP Rnsim, SEXP RstepProposals, SEXP Rtol1,
+                                             SEXP Rtol2, SEXP Rprint, SEXP Rsearch, SEXP Rmesh, bool isTime):
+  deData_(Rdata, Rorder, Rfvec, RheatStep, RheatIter, Rlambda, Rnfolds, Rnsim, RstepProposals, Rtol1, Rtol2, Rprint, Rsearch),
+  mesh_(Rmesh, INTEGER(Rsearch)[0]){
 
-
-    std::vector<Point<ndim> >& data = deData_.data();
+    std::vector<Point<ndim>>& data = deData_.data();
 
     // PROJECTION
-
     if(mydim == 2 && ndim == 3){
       Rprintf("##### DATA PROJECTION #####\n");
       projection<ORDER, mydim, ndim> projection(mesh_, data);
       data = projection.computeProjection();
     }
-
+    
     // REMOVE POINTS NOT IN THE DOMAIN
     if(!isTime) {
-        for (auto it = data.begin(); it != data.end();) {
-            Element <EL_NNODES, mydim, ndim> tri_activated = mesh_.findLocation(data[it - data.begin()]);
-            if (tri_activated.getId() == Identifier::NVAL) {
+        for(auto it = data.begin(); it != data.end(); ){
+            Element<EL_NNODES, mydim, ndim> tri_activated = mesh_.findLocation(data[it - data.begin()]);
+            if(tri_activated.getId() == Identifier::NVAL)
+            {
                 it = data.erase(it);
                 Rprintf("WARNING: an observation is not in the domain. It is removed and the algorithm proceeds.\n");
-            } else {
-                it++;
+            }
+            else {
+                ++it;
             }
         }
     }
 
-    // FILL MATRICES
+    // FILL SPACE MATRICES
     fillFEMatrices();
     fillPsiQuad();
 
@@ -100,43 +100,41 @@ Real DataProblem<ORDER, mydim, ndim>::FEintegrate_exponential(const VectorXr& g)
 template<UInt ORDER, UInt mydim, UInt ndim>
 SpMat
 DataProblem<ORDER, mydim, ndim>::computePsi(const std::vector<UInt>& indices) const{
-  
-  static constexpr Real eps = std::numeric_limits<Real>::epsilon(),
-     tolerance = 100 * eps;
 
-  UInt nnodes = mesh_.num_nodes();
-  UInt nlocations = indices.size();
-  SpMat psi(nlocations, nnodes);
+    static constexpr Real eps = std::numeric_limits<Real>::epsilon(), tolerance = 100 * eps;
 
-  std::vector<coeff> triplets;
-  triplets.reserve(EL_NNODES*nlocations);
+    UInt nnodes = mesh_.num_nodes();
+    UInt nlocations = indices.size();
+	SpMat psi(nlocations, nnodes);
 
-  for(auto it = indices.cbegin(); it != indices.cend(); it++)
-  {
+    std::vector<coeff> triplets;
+    triplets.reserve(EL_NNODES*nlocations);
 
-    Element<EL_NNODES, mydim, ndim> tri_activated = mesh_.findLocation(deData_.data(*it));
+	for(auto it = indices.cbegin(); it != indices.cend(); ++it)
+	{
+        Element<EL_NNODES, mydim, ndim> tri_activated = mesh_.findLocation(deData_.data(*it));
 
-    if(tri_activated.getId() == Identifier::NVAL)
-    {
-      Rprintf("WARNING: the following observation is not in the domain\n");
-      //(deData_.getDatum(*it)).print(std::cout);
-    }
-    else
-    {
-      for(UInt node = 0; node < EL_NNODES ; ++node)
-      {
-        Real evaluator = tri_activated.evaluate_point(deData_.data(*it), Eigen::Matrix<Real,EL_NNODES,1>::Unit(node));
-        triplets.emplace_back(it-indices.cbegin(), tri_activated[node].getId(), evaluator);
-      }
-    }
-  }
+		if(tri_activated.getId() == Identifier::NVAL)
+		{
+			Rprintf("WARNING: the following observation is not in the domain\n");
+            //operator<<(std::cout, deData_.data(*it));
+		}
+        else
+        {
+			for(UInt node = 0; node < EL_NNODES ; ++node)
+			{
+				Real evaluator = tri_activated.evaluate_point(deData_.data(*it), Eigen::Matrix<Real,EL_NNODES,1>::Unit(node));
+				triplets.emplace_back(it-indices.cbegin(), tri_activated[node].getId(), evaluator);
+			}
+		}
+	}
 
-  psi.setFromTriplets(triplets.begin(),triplets.end());
+    psi.setFromTriplets(triplets.begin(),triplets.end());
 
-  psi.prune(tolerance);
-  psi.makeCompressed();
+    psi.prune(tolerance);
+    psi.makeCompressed();
 
-  return psi;
+	return psi;
 }
 
 // ------------------------------------------------
@@ -146,14 +144,12 @@ DataProblem<ORDER, mydim, ndim>::computePsi(const std::vector<UInt>& indices) co
 template<UInt ORDER, UInt mydim, UInt ndim>
 DataProblem_time<ORDER, mydim, ndim>::DataProblem_time(SEXP Rdata, SEXP Rdata_time, SEXP Rorder, SEXP Rfvec, SEXP RheatStep,
                                                        SEXP RheatIter, SEXP Rlambda, SEXP Rlambda_time, SEXP Rnfolds, SEXP Rnsim,
-                                                       SEXP RstepProposals, SEXP Rtol1, SEXP Rtol2, SEXP Rprint, SEXP RnThreads_int,
-                                                       SEXP RnThreads_l, SEXP RnThreads_fold, SEXP Rsearch,
+                                                       SEXP RstepProposals, SEXP Rtol1, SEXP Rtol2, SEXP Rprint, SEXP Rsearch,
                                                        SEXP Rmesh, const std::vector<Real>& mesh_time, SEXP RisTimeDiscrete,
                                                        SEXP RflagMass, SEXP RflagLumped, bool isTime):
-        DataProblem<ORDER, mydim, ndim>(Rdata, Rorder, Rfvec, RheatStep, RheatIter, Rlambda, Rnfolds, Rnsim, RstepProposals,
-                                        Rtol1, Rtol2, Rprint, RnThreads_int, RnThreads_l, RnThreads_fold,
-                                        Rsearch, Rmesh, isTime),
-        deData_time_(Rdata_time, Rlambda_time), mesh_time_(mesh_time), spline_(mesh_time) {
+  DataProblem<ORDER, mydim, ndim>(Rdata, Rorder, Rfvec, RheatStep, RheatIter, Rlambda, Rnfolds, Rnsim, RstepProposals,
+                                    Rtol1, Rtol2, Rprint, Rsearch, Rmesh, isTime),
+  deData_time_(Rdata_time, Rlambda_time), mesh_time_(mesh_time), spline_(mesh_time) {
 
     flagMass_ = INTEGER(RflagMass)[0];
     flagLumped_ = INTEGER(RflagLumped)[0];
@@ -296,6 +292,7 @@ void DataProblem_time<ORDER, mydim, ndim>::setDataHeat()
     const UInt M = getSplineNumber();
     data_Heat_.resize(M);
 
+    //! ### POSSIBLE PARALLELIZATION via openMP ###
     for (int i = 0; i < deData_time_.getNTimes(); ++i) {
         for (int j = 0; j < M; ++j) {
             if(spline_.BasisFunction(j, deData_time_.time(i)) != 0) //alternative: std::abs(spline_.BasisFunction(j, data_time_[i])) >= tol)

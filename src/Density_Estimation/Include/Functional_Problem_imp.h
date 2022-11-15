@@ -1,25 +1,19 @@
 #ifndef __FUNCTIONAL_PROBLEM_IMP_H__
 #define __FUNCTIONAL_PROBLEM_IMP_H__
 
-#pragma omp declare reduction(sumVectorXd: Eigen::VectorXd: omp_out = omp_out + omp_in)\
-										initializer(omp_priv = Eigen::VectorXd::Zero(omp_orig.size()))
-
 template<UInt ORDER, UInt mydim, UInt ndim>
 std::pair<Real,VectorXr>
 FunctionalProblem<ORDER, mydim, ndim>::computeIntegrals(const VectorXr& g) const{
 
-  using EigenMap2WEIGHTS = Eigen::Map<const Eigen::Matrix<Real, Integrator::NNODES, 1> >;
+	using EigenMap2WEIGHTS = Eigen::Map<const Eigen::Matrix<Real, Integrator::NNODES, 1> >;
 
   // Initialization
 	Real int1 = 0.;
 	VectorXr int2 = VectorXr::Zero(dataProblem_.getNumNodes());
 
-	omp_set_num_threads(dataProblem_.getNThreads_int()); // set the number of threads
-  #pragma omp parallel for reduction(+: int1) reduction(sumVectorXd: int2)
 	for(UInt triangle=0; triangle<dataProblem_.getNumElements(); triangle++){
 
-    Element<EL_NNODES, mydim, ndim> tri_activated = dataProblem_.getElement(triangle);
-
+		Element<EL_NNODES, mydim, ndim> tri_activated = dataProblem_.getElement(triangle);
 // (1) -------------------------------------------------
 
     Eigen::Matrix<Real,EL_NNODES,1> sub_g;
@@ -27,19 +21,19 @@ FunctionalProblem<ORDER, mydim, ndim>::computeIntegrals(const VectorXr& g) const
       sub_g[i]=g[tri_activated[i].getId()];
     }
 // (2) -------------------------------------------------
-    Eigen::Matrix<Real,Integrator::NNODES,1> expg = (dataProblem_.getPsiQuad()*sub_g).array().exp();
+		Eigen::Matrix<Real,Integrator::NNODES,1> expg = (dataProblem_.getPsiQuad()*sub_g).array().exp();
 
     Eigen::Matrix<Real,EL_NNODES,1> sub_int2;
 
     int1+=expg.dot(EigenMap2WEIGHTS(&Integrator::WEIGHTS[0]))*tri_activated.getMeasure();
-    sub_int2 = dataProblem_.getPsiQuad().transpose() * expg.cwiseProduct(EigenMap2WEIGHTS(&Integrator::WEIGHTS[0]))*tri_activated.getMeasure();
+  	sub_int2 = dataProblem_.getPsiQuad().transpose() * expg.cwiseProduct(EigenMap2WEIGHTS(&Integrator::WEIGHTS[0]))*tri_activated.getMeasure();
 
-    for (UInt i=0; i<EL_NNODES; i++){
-      int2[tri_activated[i].getId()]+= sub_int2[i];
-    }
-  }
+  	for (UInt i=0; i<EL_NNODES; i++){
+  		int2[tri_activated[i].getId()]+= sub_int2[i];
+  	}
+	}
 
-  return std::pair<Real, VectorXr> (int1, int2);
+	return std::pair<Real, VectorXr> (int1, int2);
 }
 
 
@@ -82,6 +76,8 @@ FunctionalProblem<ORDER, mydim, ndim>::computeLlikPen_f(const VectorXr& f) const
 // --------------- FunctionalProblem_time ---------------
 // ------------------------------------------------------
 
+#pragma omp declare reduction(sumVectorXd: Eigen::VectorXd: omp_out = omp_out + omp_in)\
+										initializer(omp_priv = Eigen::VectorXd::Zero(omp_orig.size()))
 
 template<UInt ORDER, UInt mydim, UInt ndim>
 std::pair<Real, VectorXr>
@@ -101,10 +97,9 @@ FunctionalProblem_time<ORDER, mydim, ndim>::computeIntegrals(const VectorXr& g) 
     Real int1 = 0.;
     VectorXr int2 = VectorXr::Zero(dataProblem_time_.getNumNodes()*dataProblem_time_.getSplineNumber());
     const MatrixXr& PsiQuad = dataProblem_time_.getPsiQuad(); // PsiQuad is the same matrix at any time interval
-    UInt global_idx = 0; // Index that keeps track of the first B-spline basis function that is active in the current time-interval
 
-omp_set_num_threads(dataProblem_time_.getNThreads_int()); // set the number of threads
-#pragma omp parallel for reduction(+: int1) reduction (+:global_idx) reduction(sumVectorXd: int2)
+omp_set_num_threads(2);
+#pragma omp parallel for reduction(+: int1) reduction(sumVectorXd: int2) schedule(dynamic)
 
     for (int time_step = 0; time_step < dataProblem_time_.getNumNodes_time()-1;  ++time_step) {
         MatrixXr PhiQuad = dataProblem_time_.fillPhiQuad(time_step); //PhiQuad changes at each time interval
@@ -115,7 +110,7 @@ omp_set_num_threads(dataProblem_time_.getNThreads_int()); // set the number of t
             VectorXr sub_g;
             sub_g.resize(Phi_kronecker_Psi.cols());
             UInt k=0; // Index for sub_g
-            for (int j = global_idx; j < global_idx+PhiQuad.cols(); ++j) {
+            for (int j = time_step; j < time_step+PhiQuad.cols(); ++j) {
                 for (UInt i = 0; i < PsiQuad.cols(); ++i){
                     sub_g[k++] = g[tri_activated[i].getId() + dataProblem_time_.getNumNodes()*j];
                 }
@@ -128,13 +123,12 @@ omp_set_num_threads(dataProblem_time_.getNThreads_int()); // set the number of t
             sub_int2 = Phi_kronecker_Psi.transpose() *
                        expg.cwiseProduct(weights_kronecker) * tri_activated.getMeasure() * (dataProblem_time_.getMesh_time()[time_step+1]-dataProblem_time_.getMesh_time()[time_step])/2;
             k=0;
-            for (int j = global_idx; j < global_idx+PhiQuad.cols(); ++j) {
+            for (int j = time_step; j < time_step+PhiQuad.cols(); ++j) {
                 for (UInt i = 0; i < PsiQuad.cols(); ++i){
                     int2[tri_activated[i].getId()+dataProblem_time_.getNumNodes()*j] += sub_int2[k++];
                 }
             }
         }
-        ++global_idx;
     }
     return std::pair<Real, VectorXr> (int1, int2);
 }
@@ -183,6 +177,5 @@ FunctionalProblem_time<ORDER, mydim, ndim>::computeLlikPen_f(const VectorXr& f) 
 
     return std::make_tuple(llik, pen_S, pen_T);
 }
-
 
 #endif

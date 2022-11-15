@@ -3,7 +3,7 @@
 
 template<UInt ndim>
 DEData<ndim>::DEData(SEXP Rdata, SEXP Rorder, SEXP Rfvec, SEXP RheatStep, SEXP RheatIter, SEXP Rlambda, SEXP Rnfolds, SEXP Rnsim, SEXP RstepProposals,
-  SEXP Rtol1, SEXP Rtol2, SEXP Rprint, SEXP RnThreads_int, SEXP RnThreads_l, SEXP RnThreads_fold, SEXP Rsearch)
+  SEXP Rtol1, SEXP Rtol2, SEXP Rprint, SEXP Rsearch)
 {
   setData(Rdata);
 
@@ -29,35 +29,27 @@ DEData<ndim>::DEData(SEXP Rdata, SEXP Rorder, SEXP Rfvec, SEXP RheatStep, SEXP R
 
   print_ = INTEGER(Rprint)[0];
 
-    nThreads_int_ = INTEGER(RnThreads_int)[0];
-  nThreads_l_ = INTEGER(RnThreads_l)[0];
-  nThreads_fold_ = INTEGER(RnThreads_fold)[0];
-
   search_ = INTEGER(Rsearch)[0];
 
 }
 
-
 template<UInt ndim>
 DEData<ndim>::DEData(const std::vector<Point<ndim> >& data, const UInt& order, const VectorXr& fvec, Real heatStep, UInt heatIter, const std::vector<Real>& lambda,
                const UInt& nfolds, const UInt& nsim, const std::vector<Real>& stepProposals, Real tol1, Real tol2,
-               bool print, UInt nThreads_int, UInt nThreads_l, UInt nThreads_fold, UInt search):
+               bool print, UInt search):
                 data_(data), order_(order), fvec_(fvec), heatStep_(heatStep), heatIter_(heatIter), lambda_(lambda), Nfolds_(nfolds),
-                nsim_(nsim), stepProposals_(stepProposals), tol1_(tol1), tol2_(tol2), print_(print),
-                nThreads_int_(nThreads_int), nThreads_l_(nThreads_l), nThreads_fold_(nThreads_fold), search_(search)
+                nsim_(nsim), stepProposals_(stepProposals), tol1_(tol1), tol2_(tol2), print_(print), search_(search)
 {
 }
-
-
 
 template<UInt ndim>
 void DEData<ndim>::setData(SEXP Rdata)
 {
   const RNumericMatrix data(Rdata);
   UInt n_=data.nrows();
-  if(n_>0){
+  if(n_ > 0){
     data_.reserve(n_);
-    for(int i=0; i<n_; ++i)
+    for(int i = 0; i < n_; ++i)
       data_.emplace_back(i, data);
   }
 }
@@ -67,7 +59,7 @@ void DEData<ndim>::setFvec(SEXP Rfvec)
 {
   UInt dimc = Rf_length(Rfvec);
   fvec_.resize(dimc);
-  for(UInt i=0; i<dimc; i++)
+  for(UInt i = 0; i < dimc; ++i)
   {
       fvec_[i] = REAL(Rfvec)[i];
   }
@@ -78,7 +70,7 @@ void DEData<ndim>::setLambda(SEXP Rlambda)
 {
   UInt diml = Rf_length(Rlambda);
   lambda_.reserve(diml);
-  for(UInt i=0; i<diml; i++)
+  for(UInt i = 0; i < diml; ++i)
   {
       lambda_.push_back(REAL(Rlambda)[i]);
   }
@@ -89,20 +81,19 @@ void DEData<ndim>::setStepProposals(SEXP RstepProposals)
 {
   UInt dimPG = Rf_length(RstepProposals);
   stepProposals_.reserve(dimPG);
-  for(UInt i=0; i<dimPG; i++)
+  for(UInt i = 0; i < dimPG; ++i)
   {
       stepProposals_.push_back(REAL(RstepProposals)[i]);
   }
 }
 
-
 template<UInt ndim>
 void DEData<ndim>::printData(std::ostream & out) const
 {
-  for(int i=0; i<data_.size(); i++)
-  {
-    out<<data_[i]<<std::endl;
-  }
+  for(int i = 0; i < data_.size(); ++i)
+	{
+		out<<data_[i]<<std::endl;
+	}
 }
 
 // -------------------------------------------
@@ -144,8 +135,6 @@ void DEData_time::setLambdaTime(SEXP Rlambda_time)
 
 void DEData_time::setTimes2Locations()
 {
-    static constexpr Real eps = std::numeric_limits<Real>::epsilon(), tolerance = 100 * eps;
-
     // Extraction of non-duplicated times
     std::set<Real> set_times(data_time_.cbegin(), data_time_.cend());
     times_.resize(set_times.size());

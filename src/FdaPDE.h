@@ -36,10 +36,8 @@
 #include <omp.h>
 #endif
 
-
 typedef double Real;
 typedef int UInt;
-
 
 typedef Eigen::Matrix<Real,Eigen::Dynamic,Eigen::Dynamic> MatrixXr;
 typedef Eigen::Matrix<UInt,Eigen::Dynamic,Eigen::Dynamic> MatrixXi;

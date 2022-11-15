@@ -1,6 +1,5 @@
 checkParametersDE_time <- function(data, data_time, FEMbasis, mesh_time, lambda, lambda_time, step_method, direction_method,
-                                   preprocess_method, tol1, tol2, nfolds, nsimulations, nThreads_int, nThreads_l, nThreads_fold,
-                                   heatStep, heatIter, search)
+                                   preprocess_method, tol1, tol2, nfolds, nsimulations, heatStep, heatIter, search)
 {
   ################################################## Parameters Check ##################################################
   if (is.null(data))
@@ -59,8 +58,8 @@ checkParametersDE_time <- function(data, data_time, FEMbasis, mesh_time, lambda,
   if (is.null(direction_method))
     stop("'direction_method' is required; is NULL.")
   else{
-    if(direction_method!="Gradient" && direction_method!="BFGS")
-      stop("'direction_method' needs to be either 'Gradient' or 'BFGS'.")
+    if(direction_method!="Gradient" && direction_method!="ConjugateGradientFR" && direction_method!="ConjugateGradientPRP" && direction_method!="ConjugateGradientHS" && direction_method!="ConjugateGradientDY" && direction_method!="ConjugateGradientCD" && direction_method!="ConjugateGradientLS" && direction_method!="BFGS" && direction_method!="L-BFGS5" && direction_method!="L-BFGS10")
+      stop("'direction_method' needs to be 'Gradient', 'ConjugateGradientFR', 'ConjugateGradientPRP', 'ConjugateGradientHS', 'ConjugateGradientDY', 'ConjugateGradientCD', 'ConjugateGradientLS', 'BFGS', 'L-BFGS5' or 'L-BFGS10'.")
   }
 
   if((length(lambda)>1 || length(lambda_time)>1) && preprocess_method!="RightCV" && preprocess_method!="SimplifiedCV")
@@ -80,15 +79,6 @@ checkParametersDE_time <- function(data, data_time, FEMbasis, mesh_time, lambda,
 
   if(!is.numeric(nsimulations) || nsimulations<1)
     stop("'nsimulations' needs to be a positive integer.")
-
-  if(!is.numeric(nThreads_int) || nThreads_int<1)
-      stop("'nThreads_int' needs to be a positive integer.")
-
-  if(!is.numeric(nThreads_l) || nThreads_l<1)
-      stop("'nThreads_l' needs to be a positive integer.")
-
-  if(!is.numeric(nThreads_fold) || nThreads_fold<1)
-      stop("'nThreads_fold' needs to be a positive integer.")
 
   if(!is.numeric(heatStep) || heatStep<0 || heatStep>1)
     stop("'heatStep' needs to be a positive real number not greater than 1.")
@@ -118,7 +108,7 @@ checkParametersSizeDE_time <- function(data, data_time, FEMbasis, mesh_time, ndi
     stop("'data' and 'data_time' must have the same number of rows (equal to the number of observations).")
 
   if(!is.null(fvec)){
-    SPLINE_DEGREE = 3
+    SPLINE_DEGREE <- 3
     if(length(fvec) != nrow(FEMbasis$mesh$nodes) * (length(mesh_time)+SPLINE_DEGREE-1))
       stop("The length of fvec has to be equal to the product of the number of mesh nodes and the number of B-spline basis functions.")
   }

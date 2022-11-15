@@ -1,9 +1,10 @@
 #ifndef __PREPROCESS_PHASE_IMP_H__
 #define __PREPROCESS_PHASE_IMP_H__
 
+
 template<UInt ORDER, UInt mydim, UInt ndim>
 Preprocess<ORDER, mydim, ndim>::Preprocess(const DataProblem<ORDER, mydim, ndim>& dp,
-  const FunctionalProblem<ORDER, mydim, ndim>& fp):
+                                           const FunctionalProblem<ORDER, mydim, ndim>& fp):
   dataProblem_(dp), funcProblem_(fp){
 
     densityInit_ = DensityInitialization_factory<ORDER, mydim, ndim>::createInitializationSolver(dp, fp);
@@ -11,34 +12,34 @@ Preprocess<ORDER, mydim, ndim>::Preprocess(const DataProblem<ORDER, mydim, ndim>
     fInit_.resize(dp.getNlambda());
     fillFInit();
 
-  };
+}
 
 
 template<UInt ORDER, UInt mydim, UInt ndim>
-void
-Preprocess<ORDER, mydim, ndim>::fillFInit(){
+void Preprocess<ORDER, mydim, ndim>::fillFInit()
+{
 
-  for(UInt l = 0; l < dataProblem_.getNlambda(); l++){
-    fInit_[l] = densityInit_-> chooseInitialization(dataProblem_.getLambda(l));
-  }
+    for(UInt l = 0; l < dataProblem_.getNlambda(); ++l) {
+        fInit_[l] = densityInit_-> chooseInitialization(dataProblem_.getLambda(l));
+    }
 
 }
 
 
 template<UInt ORDER, UInt mydim, UInt ndim>
-void
-NoCrossValidation<ORDER, mydim, ndim>::performPreprocessTask(){
+void NoCrossValidation<ORDER, mydim, ndim>::performPreprocessTask()
+{
 
-  this->bestLambda_ = this->dataProblem_.getLambda(0);
-  this->gInit_ = (*(this->fInit_[0])).array().log();
+    this->bestLambda_ = this->dataProblem_.getLambda(0);
+    this->gInit_ = (*(this->fInit_[0])).array().log();
 
 }
 
 
 template<UInt ORDER, UInt mydim, UInt ndim>
 CrossValidation<ORDER, mydim, ndim>::CrossValidation(const DataProblem<ORDER, mydim, ndim>& dp,
-  const FunctionalProblem<ORDER, mydim, ndim>& fp,
-  std::shared_ptr<MinimizationAlgorithm<ORDER, mydim, ndim>> ma):
+                                                     const FunctionalProblem<ORDER, mydim, ndim>& fp,
+                                                     std::shared_ptr<MinimizationAlgorithm<ORDER, mydim, ndim>> ma):
   Preprocess<ORDER, mydim, ndim>(dp, fp), minAlgo_(ma), error_(dp){
 
     K_folds_.resize(dp.dataSize());
@@ -49,120 +50,110 @@ CrossValidation<ORDER, mydim, ndim>::CrossValidation(const DataProblem<ORDER, my
 
 
 template<UInt ORDER, UInt mydim, UInt ndim>
-std::pair<VectorXr, Real>
-CrossValidation<ORDER, mydim, ndim>::performCV(){
+std::pair<VectorXr, Real> CrossValidation<ORDER, mydim, ndim>::performCV()
+{
 
-  UInt N = this->dataProblem_.dataSize();
-  UInt K = this->dataProblem_.getNfolds();
+    UInt N = this->dataProblem_.dataSize();
+    UInt K = this->dataProblem_.getNfolds();
 
-  for (UInt i = 0; i< N; i++){
-    UInt length = ((i % K) <= (N % K))? (i % K)*(N/K +1) : (N % K) + (i % K)*(N/K);
-    K_folds_[length + i/K] = i;
-  }
+    for (UInt i = 0; i< N; ++i) {
+        UInt length = ((i % K) <= (N % K))? (i % K)*(N/K +1) : (N % K) + (i % K)*(N/K);
+        K_folds_[length + i/K] = i;
+    }
 
-  omp_set_num_threads(this->dataProblem_.getNThreads_fold()); // set the number of threads
-  #pragma omp parallel for
-  // cycle on the folds
-  for (UInt i = 0; i < K; i++){
+    // Cycle on the folds
+    for (UInt i = 0; i < K; ++i){
 
-    if(this->dataProblem_.Print()){
+        if(this->dataProblem_.Print()) {
+            Rprintf("X_valid is the fold number %d\n", i);
+        }
 
-      Rprintf("X_valid is the fold number %d\n", i);
+        std::vector<UInt> x_valid, x_train;
+
+        if (i < N % K) { // "Big" folds
+            std::set_union(K_folds_.cbegin(), K_folds_.cbegin()+ i*(N/K +1), K_folds_.cbegin()+ (i + 1)*(N/K +1), K_folds_.cend(), std::back_inserter(x_train));
+            std::copy(K_folds_.cbegin()+ i*(N/K +1), K_folds_.cbegin()+ (i + 1)*(N/K +1), std::back_inserter(x_valid));
+        }
+        else { // "Small" folds
+            std::set_union(K_folds_.cbegin(), K_folds_.cbegin()+ (N % K) + i*(N/K), K_folds_.cbegin()+ (N % K) + (i+1)*(N/K) , K_folds_.cend(), std::back_inserter(x_train));
+            std::copy(K_folds_.cbegin()+ (N % K) + i*(N/K), K_folds_.cbegin()+ (N % K) + (i+1)*(N/K), std::back_inserter(x_valid));
+        }
+
+        SpMat Psi_train = this->dataProblem_.computePsi(x_train);
+        SpMat Psi_valid = this->dataProblem_.computePsi(x_valid);
+
+        performCV_core(i, Psi_train, Psi_valid); // It fills g_sols, CV_errors_
 
     }
 
-    std::vector<UInt> x_valid, x_train;
+    UInt init_best_lambda = std::distance(CV_errors_.cbegin(), std::min_element(CV_errors_.cbegin(), CV_errors_.cend()));
 
-    if (i < N % K){ // fold grossi
-      std::set_union(K_folds_.cbegin(), K_folds_.cbegin()+ i*(N/K +1), K_folds_.cbegin()+ (i + 1)*(N/K +1), K_folds_.cend(), std::back_inserter(x_train));
-      std::copy(K_folds_.cbegin()+ i*(N/K +1), K_folds_.cbegin()+ (i + 1)*(N/K +1), std::back_inserter(x_valid));
-    }
-    else{ //fold piccoli
-      std::set_union(K_folds_.cbegin(), K_folds_.cbegin()+ (N % K) + i*(N/K), K_folds_.cbegin()+ (N % K) + (i+1)*(N/K) , K_folds_.cend(), std::back_inserter(x_train));
-      std::copy(K_folds_.cbegin()+ (N % K) + i*(N/K), K_folds_.cbegin()+ (N % K) + (i+1)*(N/K), std::back_inserter(x_valid));
-    }
+    return std::pair<VectorXr, Real> (g_sols_[init_best_lambda], this->dataProblem_.getLambda(init_best_lambda));
 
-    SpMat Psi_train = this->dataProblem_.computePsi(x_train);
-    SpMat Psi_valid = this->dataProblem_.computePsi(x_valid);
+}
 
-    performCV_core(i, Psi_train, Psi_valid); // it fills g_sols, CV_errors_
 
-  }
+template<UInt ORDER, UInt mydim, UInt ndim>
+void CrossValidation<ORDER, mydim, ndim>::performPreprocessTask()
+{
 
-  UInt init_best_lambda = std::distance(CV_errors_.cbegin(), std::min_element(CV_errors_.cbegin(), CV_errors_.cend()));
-
-  return std::pair<VectorXr, Real> (g_sols_[init_best_lambda], this->dataProblem_.getLambda(init_best_lambda));
+    std::tie(this->gInit_, this->bestLambda_) = performCV();
 
 }
 
 
 template<UInt ORDER, UInt mydim, UInt ndim>
 void
-CrossValidation<ORDER, mydim, ndim>::performPreprocessTask(){
+SimplifiedCrossValidation<ORDER, mydim, ndim>::performCV_core(UInt fold, const SpMat& Psi_train, const SpMat& Psi_valid)
+{
 
-  std::tie(this->gInit_, this->bestLambda_) = performCV();
+    if(this->dataProblem_.Print()) {
+        Rprintf("lambda: %f\n", this->dataProblem_.getLambda(fold));
+    }
 
-}
+    this->g_sols_[fold] = this->minAlgo_->apply_core(Psi_train, this->dataProblem_.getLambda(fold), (*(this->fInit_[fold])).array().log());
 
-
-template<UInt ORDER, UInt mydim, UInt ndim>
-void
-SimplifiedCrossValidation<ORDER, mydim, ndim>::performCV_core(UInt fold, const SpMat& Psi_train, const SpMat& Psi_valid){
-
-  if(this->dataProblem_.Print()){
-
-    Rprintf("lambda: %f\n", this->dataProblem_.getLambda(fold));
-
-  }
-
-  this->g_sols_[fold] = this->minAlgo_->apply_core(Psi_train, this->dataProblem_.getLambda(fold), (*(this->fInit_[fold])).array().log());
-
-  this->CV_errors_[fold] = this->error_(Psi_valid, this->g_sols_[fold]);
+    this->CV_errors_[fold] = this->error_(Psi_valid, this->g_sols_[fold]);
 
 }
 
 
 template<UInt ORDER, UInt mydim, UInt ndim>
-RightCrossValidation<ORDER, mydim, ndim>::
-  RightCrossValidation(const DataProblem<ORDER, mydim, ndim>& dp,
-   const FunctionalProblem<ORDER, mydim, ndim>& fp,
-   std::shared_ptr<MinimizationAlgorithm<ORDER, mydim, ndim>> ma):
-   CrossValidation<ORDER, mydim, ndim>(dp, fp, ma){
+RightCrossValidation<ORDER, mydim, ndim>::RightCrossValidation(const DataProblem<ORDER, mydim, ndim>& dp,
+                                                               const FunctionalProblem<ORDER, mydim, ndim>& fp,
+                                                               std::shared_ptr<MinimizationAlgorithm<ORDER, mydim, ndim>> ma):
+  CrossValidation<ORDER, mydim, ndim>(dp, fp, ma){
 
-      best_loss_.resize(this->dataProblem_.getNlambda(), std::numeric_limits<double>::max());
+    best_loss_.resize(this->dataProblem_.getNlambda(), std::numeric_limits<double>::max());
 
 }
 
 
 template<UInt ORDER, UInt mydim, UInt ndim>
-void
-RightCrossValidation<ORDER, mydim, ndim>::performCV_core(UInt fold, const SpMat& Psi_train, const SpMat& Psi_valid){
+void RightCrossValidation<ORDER, mydim, ndim>::performCV_core(UInt fold, const SpMat& Psi_train, const SpMat& Psi_valid)
+{
 
-  omp_set_num_threads(this->dataProblem_.getNThreads_l()); // set the number of threads
-  #pragma omp parallel for
-  for (UInt l=0; l < this->dataProblem_.getNlambda(); l++){
+    for (UInt l = 0; l < this->dataProblem_.getNlambda(); ++l) {
 
-     std::unique_ptr<MinimizationAlgorithm<ORDER, mydim, ndim>>
-     minimizationAlgo = this->minAlgo_->clone();
+        std::unique_ptr<MinimizationAlgorithm<ORDER, mydim, ndim>> minimizationAlgo = this->minAlgo_->clone();
 
-     if(this->dataProblem_.Print()){
-       Rprintf("lambda: %f\n", this->dataProblem_.getLambda(l));
+        if(this->dataProblem_.Print()) {
+            Rprintf("lambda: %f\n", this->dataProblem_.getLambda(l));
+        }
 
-     }
+        VectorXr sols;
 
-     VectorXr sols;
+        sols = minimizationAlgo->apply_core(Psi_train, this->dataProblem_.getLambda(l), (*(this->fInit_[l])).array().log());
 
-     sols = minimizationAlgo->apply_core(Psi_train, this->dataProblem_.getLambda(l), (*(this->fInit_[l])).array().log());
+        this->CV_errors_[l] += this->error_(Psi_valid, sols);
 
-     this->CV_errors_[l] += this->error_(Psi_valid, sols);
+        Real loss = std::get<0>(this->funcProblem_.computeFunctional_g(sols, this->dataProblem_.getLambda(l), Psi_train));
 
-     Real loss = std::get<0>(this->funcProblem_.computeFunctional_g(sols, this->dataProblem_.getLambda(l), Psi_train));
-
-     if(loss < best_loss_[l]){
-       best_loss_[l] = loss;
-       this->g_sols_[l] = sols;
-     }
-  }
+        if(loss < best_loss_[l]) {
+            best_loss_[l] = loss;
+            this->g_sols_[l] = sols;
+        }
+    }
 
 }
 
@@ -174,7 +165,7 @@ RightCrossValidation<ORDER, mydim, ndim>::performCV_core(UInt fold, const SpMat&
 template<UInt ORDER, UInt mydim, UInt ndim>
 Preprocess_time<ORDER, mydim, ndim>::Preprocess_time(const DataProblem_time<ORDER, mydim, ndim>& dp,
                                                      const FunctionalProblem_time<ORDER, mydim, ndim>& fp):
-        dataProblem_(dp), funcProblem_(fp)
+  dataProblem_(dp), funcProblem_(fp)
 {
 
     densityInit_ = DensityInitialization_factory_time<ORDER, mydim, ndim>::createInitializationSolver(dp, fp);
@@ -217,7 +208,7 @@ template<UInt ORDER, UInt mydim, UInt ndim>
 CrossValidation_time<ORDER, mydim, ndim>::CrossValidation_time(const DataProblem_time<ORDER, mydim, ndim>& dp,
                                                                const FunctionalProblem_time<ORDER, mydim, ndim>& fp,
                                                                std::shared_ptr<MinimizationAlgorithm_time<ORDER, mydim, ndim>> ma):
-        Preprocess_time<ORDER, mydim, ndim>(dp, fp), minAlgo_(ma), error_(dp){
+  Preprocess_time<ORDER, mydim, ndim>(dp, fp), minAlgo_(ma), error_(dp){
 
     K_folds_.resize(dp.dataSize());
     CV_errors_.resize(dp.getNlambda()*dp.getNlambda_time(), 0);
@@ -239,8 +230,7 @@ std::tuple<VectorXr, Real, Real> CrossValidation_time<ORDER, mydim, ndim>::perfo
     }
 
     // Cycle on the folds
-    omp_set_num_threads(this->dataProblem_.getNThreads_fold()); // set the number of threads
-#pragma omp parallel for
+
     for (UInt i = 0; i < K; i++){
 
         if(this->dataProblem_.Print()) {
@@ -309,7 +299,7 @@ template<UInt ORDER, UInt mydim, UInt ndim>
 RightCrossValidation_time<ORDER, mydim, ndim>::RightCrossValidation_time(const DataProblem_time<ORDER, mydim, ndim>& dp,
                                                                          const FunctionalProblem_time<ORDER, mydim, ndim>& fp,
                                                                          std::shared_ptr<MinimizationAlgorithm_time<ORDER, mydim, ndim>> ma):
-        CrossValidation_time<ORDER, mydim, ndim>(dp, fp, ma){
+  CrossValidation_time<ORDER, mydim, ndim>(dp, fp, ma){
 
     best_loss_.resize(this->dataProblem_.getNlambda()*this->dataProblem_.getNlambda_time(), std::numeric_limits<double>::max());
 
@@ -320,8 +310,8 @@ template<UInt ORDER, UInt mydim, UInt ndim>
 void RightCrossValidation_time<ORDER, mydim, ndim>::performCV_core(UInt fold, const SpMat& Upsilon_train,
                                                                    const SpMat& Upsilon_valid)
 {
-    omp_set_num_threads(this->dataProblem_.getNThreads_l()); // set the number of threads
-#pragma omp parallel for
+
+
     for (UInt l = 0; l < this->dataProblem_.getNlambda() * this->dataProblem_.getNlambda_time(); ++l) {
 
         UInt l_S = static_cast<UInt>(l / this->dataProblem_.getNlambda_time());

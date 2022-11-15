@@ -5,16 +5,16 @@
 
 // This file contains the initialization procedure for the Density Estimation problem
 
-/*!  @brief An abstract base class dealing with the density initialization feature.
+/*! @brief An abstract base class dealing with the density initialization feature.
 */
 template<UInt ORDER, UInt mydim, UInt ndim>
 class DensityInitialization{
-  protected:
+protected:
     static constexpr UInt EL_NNODES = how_many_nodes(ORDER,mydim);
     // A member to access data problem methods
     const DataProblem<ORDER, mydim, ndim>& dataProblem_;
 
-  public:
+public:
     //! A constructor.
     DensityInitialization(const DataProblem<ORDER, mydim, ndim>& dp): dataProblem_(dp){};
     //! A destructor.
@@ -23,27 +23,28 @@ class DensityInitialization{
     virtual const VectorXr* chooseInitialization(Real lambda) const = 0;
 };
 
-/*!  @brief A class dealing with the user's density initialization.
+/*! @brief A class dealing with the user's density initialization.
 */
 template<UInt ORDER, UInt mydim, UInt ndim>
 class UserInitialization : public DensityInitialization<ORDER, mydim, ndim>{
-  private:
+private:
     static constexpr UInt EL_NNODES = DensityInitialization<ORDER, mydim, ndim>::EL_NNODES;
+    // A VectorXr which contains the user initialization
     VectorXr initialization;
 
-  public:
-    //! Delegating constructor
+public:
+    //! Delegating constructor.
     UserInitialization(const DataProblem<ORDER, mydim, ndim>& dp);
     //! An overridden method to compute density initialization when the user gives it.
     const VectorXr* chooseInitialization(Real lambda) const override;
 };
 
-/*!  @brief A class dealing with the density initialization given by a discretized heat diffusion process.
+/*! @brief A class dealing with the density initialization given by a discretized heat diffusion process.
     It implements some methods useful to perform the discretized heat diffusion process and to choose the best initialization.
 */
 template<UInt ORDER, UInt mydim, UInt ndim>
 class HeatProcess : public DensityInitialization<ORDER, mydim, ndim>{
-  protected:
+protected:
     static constexpr UInt EL_NNODES = DensityInitialization<ORDER, mydim, ndim>::EL_NNODES;
     // A member to access functional methods
     const FunctionalProblem<ORDER, mydim, ndim>& funcProblem_;
@@ -66,13 +67,14 @@ class HeatProcess : public DensityInitialization<ORDER, mydim, ndim>{
     //! A method that provides a set of starting densities.
     void computeStartingDensities();
 
-    std::vector<UInt>  data_index_;
+    std::vector<UInt> data_index_;
 
-  public:
+public:
     //! A Constructor.
     HeatProcess(const DataProblem<ORDER, mydim, ndim>& dp,
       const FunctionalProblem<ORDER, mydim, ndim>& fp);
-    //! An overridden method to compute density initialization when it needes to be choosen among the proposals given by a discretized heat diffusion process.
+    //! An overridden method to compute density initialization when it needs to be chosen among the proposals given by a
+    //! discretized heat diffusion process.
     const VectorXr* chooseInitialization(Real lambda) const override;
     //! A method to compute the patch_areas_.
     static VectorXr computePatchAreas(const MeshHandler<ORDER, mydim, ndim>& mesh);
@@ -81,7 +83,6 @@ class HeatProcess : public DensityInitialization<ORDER, mydim, ndim>{
 
 template<UInt ORDER, UInt mydim, UInt ndim>
 class Heat_CV : public HeatProcess<ORDER, mydim, ndim>{
-
 private:
   static constexpr UInt EL_NNODES = HeatProcess<ORDER, mydim, ndim>::EL_NNODES;
   KfoldCV_L2_error<ORDER, mydim, ndim> error_;
@@ -92,6 +93,7 @@ private:
   UInt init_best_;
 
   void perform_init_cv();
+
 public:
   //! A Constructor.
   Heat_CV(const DataProblem<ORDER, mydim, ndim>& dp,  const FunctionalProblem<ORDER, mydim, ndim>& fp, UInt K);
@@ -196,6 +198,7 @@ public:
 
     const VectorXr* chooseInitialization(Real lambda_S, Real lambda_T) const override;
 };
+
 
 #include "Density_Initialization_imp.h"
 #endif

@@ -6,9 +6,9 @@
 #include "Descent_Direction.h"
 #include "Descent_Direction_Factory.h"
 
-// This file contains info of the optimization algorithm of the Density Estimation problem 
+// This file contains info of the optimization algorithm of the Density Estimation problem
 
-//! @brief An abtract base class to perform the minimization algorithm.
+//! @brief An abstract base class to perform the minimization algorithm.
 template<UInt ORDER, UInt mydim, UInt ndim>
 class MinimizationAlgorithm{
   protected:
@@ -21,8 +21,8 @@ class MinimizationAlgorithm{
 
   public:
     //! A constructor.
-    MinimizationAlgorithm(const DataProblem<ORDER, mydim, ndim>& dp,
-      const FunctionalProblem<ORDER, mydim, ndim>& fp, const std::string& d);
+    MinimizationAlgorithm(const DataProblem<ORDER, mydim, ndim>& dp, const FunctionalProblem<ORDER, mydim, ndim>& fp,
+                          const std::string& d);
     //! A destructor.
     virtual ~MinimizationAlgorithm(){};
     //! A copy constructor.
@@ -40,14 +40,13 @@ template<UInt ORDER, UInt mydim, UInt ndim>
 class FixedStep : public MinimizationAlgorithm<ORDER, mydim, ndim>{
   public:
     //! A delegating constructor.
-    FixedStep(const DataProblem<ORDER, mydim, ndim>& dp,
-      const FunctionalProblem<ORDER, mydim, ndim>& fp,
-      const std::string& d):
+    FixedStep(const DataProblem<ORDER, mydim, ndim>& dp, const FunctionalProblem<ORDER, mydim, ndim>& fp,
+              const std::string& d):
       MinimizationAlgorithm<ORDER, mydim, ndim>(dp, fp, d){};
 
     //! A copy constructor.
     FixedStep(const FixedStep<ORDER, mydim, ndim>& rhs):
-    MinimizationAlgorithm<ORDER, mydim, ndim>(rhs){};
+      MinimizationAlgorithm<ORDER, mydim, ndim>(rhs){};
     //! Clone method overridden.
     std::unique_ptr<MinimizationAlgorithm<ORDER, mydim, ndim>> clone() const override;
     //! A method to perform the minimization algorithm when the step parameter is fixed among all the iterations.
@@ -62,15 +61,15 @@ class AdaptiveStep : public MinimizationAlgorithm<ORDER, mydim, ndim>{
   protected:
     //! A copy constructor.
     AdaptiveStep(const AdaptiveStep<ORDER, mydim, ndim>& rhs):
-    MinimizationAlgorithm<ORDER, mydim, ndim>(rhs){};
+      MinimizationAlgorithm<ORDER, mydim, ndim>(rhs){};
     //! A pure virtual method to compute the step.
-    virtual Real computeStep (const VectorXr& g,  Real loss, const VectorXr& grad, const VectorXr& dir, Real lambda, const SpMat& Psi) const = 0;
+    virtual Real computeStep (const VectorXr& g,  Real loss, const VectorXr& grad, const VectorXr& dir, Real lambda,
+                              const SpMat& Psi) const = 0;
 
   public:
     //! A delegating constructor.
-    AdaptiveStep(const DataProblem<ORDER, mydim, ndim>& dp,
-      const FunctionalProblem<ORDER, mydim, ndim>& fp,
-      const std::string& d):
+    AdaptiveStep(const DataProblem<ORDER, mydim, ndim>& dp, const FunctionalProblem<ORDER, mydim, ndim>& fp,
+                 const std::string& d):
       MinimizationAlgorithm<ORDER, mydim, ndim>(dp, fp, d){};
     //! A pure virtual clone method.
     virtual std::unique_ptr<MinimizationAlgorithm<ORDER, mydim, ndim>> clone() const = 0;
@@ -85,17 +84,17 @@ template<UInt ORDER, UInt mydim, UInt ndim>
 class BacktrackingMethod : public AdaptiveStep<ORDER, mydim, ndim>{
   private:
     //! A method to compute the step using the Backtracking Method.
-    Real computeStep(const VectorXr& g, Real loss, const VectorXr& grad, const VectorXr& dir, Real lambda, const SpMat& Psi) const override;
+    Real computeStep(const VectorXr& g, Real loss, const VectorXr& grad, const VectorXr& dir, Real lambda,
+                     const SpMat& Psi) const override;
   public:
     //! A delegating constructor.
-    BacktrackingMethod(const DataProblem<ORDER, mydim, ndim>& dp,
-      const FunctionalProblem<ORDER, mydim, ndim>& fp,
-      const std::string& d):
+    BacktrackingMethod(const DataProblem<ORDER, mydim, ndim>& dp, const FunctionalProblem<ORDER, mydim, ndim>& fp,
+                       const std::string& d):
       AdaptiveStep<ORDER, mydim, ndim>(dp, fp, d){};
 
     //! A copy constructor.
     BacktrackingMethod(const BacktrackingMethod<ORDER, mydim, ndim>& rhs):
-    AdaptiveStep<ORDER, mydim, ndim>(rhs){};
+      AdaptiveStep<ORDER, mydim, ndim>(rhs){};
     //! Clone method overridden.
     std::unique_ptr<MinimizationAlgorithm<ORDER, mydim, ndim>> clone() const override;
 
@@ -107,21 +106,22 @@ template<UInt ORDER, UInt mydim, UInt ndim>
 class WolfeMethod : public AdaptiveStep<ORDER, mydim, ndim>{
   private:
     //! A method to compute the step using the Wolfe Method.
-    Real computeStep(const VectorXr& g, Real loss, const VectorXr& grad, const VectorXr& dir, Real lambda, const SpMat& Psi) const override;
+    Real computeStep(const VectorXr& g, Real loss, const VectorXr& grad, const VectorXr& dir, Real lambda,
+                     const SpMat& Psi) const override;
   public:
     //! A delegating constructor.
-    WolfeMethod(const DataProblem<ORDER, mydim, ndim>& dp,
-      const FunctionalProblem<ORDER, mydim, ndim>& fp,
-      const std::string& d):
+    WolfeMethod(const DataProblem<ORDER, mydim, ndim>& dp, const FunctionalProblem<ORDER, mydim, ndim>& fp,
+                const std::string& d):
       AdaptiveStep<ORDER, mydim, ndim>(dp, fp, d){};
 
     //! A copy constructor.
     WolfeMethod(const WolfeMethod<ORDER, mydim, ndim>& rhs):
-    AdaptiveStep<ORDER, mydim, ndim>(rhs){};
+      AdaptiveStep<ORDER, mydim, ndim>(rhs){};
     //! Clone method overridden.
     std::unique_ptr<MinimizationAlgorithm<ORDER, mydim, ndim>> clone() const override;
 
 };
+
 
 //! @brief An abstract base class to perform the minimization algorithm (spatio-temporal setting).
 template<UInt ORDER, UInt mydim, UInt ndim>
@@ -158,11 +158,11 @@ public:
     //! A delegating constructor.
     FixedStep_time(const DataProblem_time<ORDER, mydim, ndim>& dp, const FunctionalProblem_time<ORDER, mydim, ndim>& fp,
                    const std::string& d):
-            MinimizationAlgorithm_time<ORDER, mydim, ndim>(dp, fp, d){};
+      MinimizationAlgorithm_time<ORDER, mydim, ndim>(dp, fp, d){};
 
     //! A copy constructor.
     FixedStep_time(const FixedStep_time<ORDER, mydim, ndim>& rhs):
-            MinimizationAlgorithm_time<ORDER, mydim, ndim>(rhs){};
+      MinimizationAlgorithm_time<ORDER, mydim, ndim>(rhs){};
     //! Clone method overridden.
     std::unique_ptr<MinimizationAlgorithm_time<ORDER, mydim, ndim>> clone() const override;
     //! A method to perform the minimization algorithm when the step parameter is fixed among all the iterations.
@@ -177,7 +177,7 @@ class AdaptiveStep_time : public MinimizationAlgorithm_time<ORDER, mydim, ndim>{
 protected:
     //! A copy constructor.
     AdaptiveStep_time(const AdaptiveStep_time<ORDER, mydim, ndim>& rhs):
-            MinimizationAlgorithm_time<ORDER, mydim, ndim>(rhs){};
+      MinimizationAlgorithm_time<ORDER, mydim, ndim>(rhs){};
     //! A pure virtual method to compute the step.
     virtual Real computeStep (const VectorXr& g,  Real loss, const VectorXr& grad, const VectorXr& dir, Real lambda_S,
                               Real lambda_T, const SpMat& Upsilon) const = 0;
@@ -186,7 +186,7 @@ public:
     //! A delegating constructor.
     AdaptiveStep_time(const DataProblem_time<ORDER, mydim, ndim>& dp, const FunctionalProblem_time<ORDER, mydim, ndim>& fp,
                       const std::string& d):
-            MinimizationAlgorithm_time<ORDER, mydim, ndim>(dp, fp, d){};
+      MinimizationAlgorithm_time<ORDER, mydim, ndim>(dp, fp, d){};
     //! A pure virtual clone method.
     virtual std::unique_ptr<MinimizationAlgorithm_time<ORDER, mydim, ndim>> clone() const = 0;
     //! A method to perform the minimization algorithm when the step is computed for each iteration.
@@ -240,5 +240,7 @@ public:
 
 };
 
+
 #include "Optimization_Algorithm_imp.h"
+
 #endif

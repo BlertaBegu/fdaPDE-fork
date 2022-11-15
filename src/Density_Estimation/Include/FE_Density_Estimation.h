@@ -4,16 +4,16 @@
 #include "Preprocess_Phase.h"
 #include "Preprocess_Factory.h"
 
-// This file is useful to perform the Density Estimation problem 
+// This file is useful to perform the Density Estimation problem
 
 /*! @brief A class to perform the whole density estimation problem.
 */
 template<UInt ORDER, UInt mydim, UInt ndim>
 class FEDE{
   private:
-    // A member to acess data problem methods
+    // A member to access data problem methods
     const DataProblem<ORDER, mydim, ndim>& dataProblem_;
-    // A member to acess functional methods
+    // A member to access functional methods
     const FunctionalProblem<ORDER, mydim, ndim>& funcProblem_;
     // A member to do the minimization phase
     std::shared_ptr<MinimizationAlgorithm<ORDER, mydim, ndim>> minAlgo_;
@@ -25,11 +25,11 @@ class FEDE{
     std::vector<const VectorXr*> fInit_;
     // A member to save the best lambda
     Real bestLambda_;
-
+    // A member to store CV errors
     std::vector<Real> CV_errors_;
 
   public:
-    //! A costructor
+    //! A constructor.
     FEDE(const DataProblem<ORDER, mydim, ndim>& dp,
       const FunctionalProblem<ORDER, mydim, ndim>& fp,
       std::shared_ptr<MinimizationAlgorithm<ORDER, mydim, ndim>> ma, const std::string& p);
@@ -42,13 +42,10 @@ class FEDE{
     VectorXr getDensity_g() const {return gcoeff_;}
     //! A method returning initial densities.
     std::vector<const VectorXr*> getInitialDensity() const {return fInit_;}
-    //! A method returning the smmothing parameter selected.
+    //! A method returning the smoothing parameter selected.
     Real getBestLambda() const {return bestLambda_;}
-
-    // to delete
+    //! A method returning CV errors.
     std::vector<Real> getCvError() const {return CV_errors_;}
-
-
 };
 
 /*! @brief A class to perform the whole spatio-temporal density estimation problem.
@@ -95,7 +92,7 @@ public:
     std::vector<Real> getCvError() const {return CV_errors_;}
 };
 
-#include "FE_Density_Estimation_imp.h"
 
+#include "FE_Density_Estimation_imp.h"
 
 #endif

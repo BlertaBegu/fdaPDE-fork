@@ -15,8 +15,8 @@
 #' @param fvec A vector of length #\code{nodes} of the spatial mesh times #\code{B-spline} temporal functional basis. It corresponds to the
 #' node values of the initial density function. If this is \code{NULL} the initial density is estimated thanks to a discretized heat diffusion
 #' process that starts from the empirical density of the data. Default is \code{NULL}.
-#' N.B. This vector cannot be the constant vector of zeros since the algortihm works with the log(f).
-#' @param heatStep A real specifying the time step for the discretized heat diffusionn process.
+#' N.B. This vector cannot be the constant vector of zeros since the algorithm works with the log(f).
+#' @param heatStep A real specifying the time step for the discretized heat diffusion process.
 #' @param heatIter An integer specifying the number of iterations to perform the discretized heat diffusion process.
 #' @param stepProposals A scalar or a vector containing the step parameters useful for the descent algorithm. If there is a
 #' vector of parameters, the biggest one such that the functional decreases at each iteration is chosen. If it is \code{NULL}
@@ -31,13 +31,7 @@
 #' @param print A boolean that is \code{TRUE} if the user wants the value of the functional, of the loglikelihood and of the
 #' penalization terms printed on console at each iteration of the descent algorithm (plus some other information/warnings). Default is \code{FALSE}.
 #' N.B. We suggest to let it \code{FALSE} if \code{preprocess_method} is 'RightCV' or 'SimplifiedCV'.
-#' @param nThread_int Integer specifying the number of threads to paralllize the computation of integrals. Default is 2.
-#' N.B. Only one between \code{nThread_int}, \code{nThread_l}, \code{nThread_fold} can be 2, the others need to be 1.
-#' @param nThread_l Integer specifying the number of threads to paralllize the loop over smoothing parameters. Default is 1.
-#' #' N.B. Only one between \code{nThread_int}, \code{nThread_l}, \code{nThread_fold} can be 2, the others need to be 1.
-#' @param nThread_fold Integer specifying the number of threads to paralllize the loop over folds during cross-validation. Default is 1.
-#' #' N.B. Only one between \code{nThread_int}, \code{nThread_l}, \code{nThread_fold} can be 2, the others need to be 1.
-#' @param nfolds An integer specifying the number of folds used in cross validation techinque to find the best pair of
+#' @param nfolds An integer specifying the number of folds used in cross validation technique to find the best pair of
 #' (\code{lambda}, \code{lambda_time}) smoothing parameters.
 #' If there is only one pair of (\code{lambda}, \code{lambda_time}) it can be \code{NULL}. Default is \code{NULL}.
 #' @param nsimulations An integer specifying the number of iterations used in the optimization algorithms. Default value is 500.
@@ -48,7 +42,13 @@
 #' @param direction_method A string specifying which descent direction to use in the descent algorithm.
 #' If it is \code{Gradient}, the direction is the one given by the gradient descent method (the opposite to the gradient of
 #' the functional); if instead it is \code{BFGS} the direction is the one given by the BFGS method
-#' (Broyden-Fletcher-Goldfarb-Shanno, a Quasi-Newton method). Default is \code{BFGS}.
+#' (Broyden-Fletcher-Goldfarb-Shanno, a Quasi-Newton method). Default is \code{BFGS}. Other possible choices:
+#' Conjugate Gradient direction with Fletcher-Reeves formula (\code{ConjugateGradientFR}), Conjugate Gradient direction with
+#' Polak-Ribiere-Polyak formula (\code{ConjugateGradientPRP}), Conjugate Gradient direction with Hestenes-Stiefel formula
+#' (\code{ConjugateGradientHS}), Conjugate Gradient direction with Dai-Yuan formula (\code{ConjugateGradientDY}), Conjugate
+#' Gradient direction with Conjugate-Descent formula (\code{ConjugateGradientCD}), Conjugate Gradient direction with Liu-Storey
+#' formula (\code{ConjugateGradientLS}), L-BFGS direction with 5 correction vectors (\code{L-BFGS5}), L-BFGS direction with 10
+#' correction vectors (\code{L-BFGS10}).
 #' @param preprocess_method A string specifying the k fold cross validation technique to use, if there is more than one pair of
 #' smoothing parameters in space and in time (\code{lambda}, \code{lambda_time}); otherwise it should be \code{NULL}.
 #' If it is \code{RightCV} the usual k fold cross validation method is performed. If it is \code{SimplifiedCV} a simplified
@@ -83,10 +83,10 @@
 #' @description This function implements a nonparametric spatio-temporal density estimation method with differential regularization
 #' (given by the sum of the square of the L2 norm of the laplacian of the density function and the square of the L2 norm of the second-
 #' order time-derivative), when points are located over a planar mesh. The computation relies only on the C++ implementation of the algorithm.
-#' @usage DE.FEM.time(data, data_time, FEMbasis, mesh_time, lambda, lambda_time, fvec=NULL, heatStep=0.1, heatIter=500,
-#'                    stepProposals=NULL, tol1=1e-4, tol2=0, print=FALSE, nThreads_int=2, nThreads_l=1, nThreads_fold=1, nfolds=NULL, nsimulations=500, step_method="Fixed_Step",
-#'                    direction_method="BFGS", preprocess_method="NoCrossValidation", search="tree", isTimeDiscrete=0, flagMass=0,
-#'                    flagLumped=0)
+#' @usage DE.FEM.time(data, data_time, FEMbasis, mesh_time, lambda, lambda_time, fvec=NULL, heatStep=0.1, heatIter=10,
+#'             stepProposals=NULL, tol1=1e-4, tol2=0, print=FALSE, nfolds=NULL, nsimulations=500, step_method="Fixed_Step",
+#'             direction_method="BFGS", preprocess_method="NoCrossValidation", search="tree", isTimeDiscrete=0, flagMass=0,
+#'             flagLumped=0)
 #' @export
 #' @examples
 #' library(fdaPDE)
@@ -107,7 +107,7 @@
 #' ## Generate data
 #' n <- 1000
 #' set.seed(10)
-#' locations <- mvtnorm::rmvnorm(1, mean=c(0,0), sigma=diag(2))
+#' locations <- mvtnorm::rmvnorm(n, mean=c(0,0), sigma=diag(2))
 #' times <- runif(n,0,1)
 #' data <- cbind(locations, times)
 #'
@@ -121,8 +121,8 @@
 #' lambda <- 0.1
 #' lambda_time <- 0.001
 #' sol <- DE.FEM.time(data = locations, data_time = times, FEMbasis = FEMbasis, mesh_time = mesh_time, lambda = lambda, lambda_time = lambda_time,
-#'                    fvec=NULL, heatStep=0.1, heatIter=50, stepProposals=NULL, tol1=1e-4, tol2=0, print=FALSE,  nThreads_int=2,
-#'                    nThreads_l=1, nThreads_fold=1, nfolds=NULL, nsimulations=300, step_method="Fixed_Step", direction_method="BFGS", preprocess_method="NoCrossValidation",
+#'                    fvec=NULL, heatStep=0.1, heatIter=10, stepProposals=NULL, tol1=1e-4, tol2=0, print=FALSE,
+#'                    nfolds=NULL, nsimulations=300, step_method="Fixed_Step", direction_method="BFGS", preprocess_method="NoCrossValidation",
 #'                    search="tree", isTimeDiscrete=0, flagMass=0, flagLumped=0)
 #'
 #' ## Visualization
@@ -136,20 +136,18 @@
 #'         xlab = "x", ylab = "y", contour = list(drawlabels = FALSE),
 #'         main = paste("True density at t = ", t), zlim=c(0,0.2), asp = 1)
 #'
-#' FEMfunction = FEM.time(sol, mesh_time, FEMbasis, FLAG_PARABOLIC = FALSE)
+#' FEMfunction = FEM.time(sol$g, mesh_time, FEMbasis, FLAG_PARABOLIC = FALSE)
 #' evaluation <- eval.FEM.time(FEM.time = FEMfunction, locations = grid, time.instants = t)
 #' image2D(x = X, y = Y, z = matrix(exp(evaluation), n, n), col = heat.colors(100),
 #'         xlab = "x", ylab = "y", contour = list(drawlabels = FALSE),
 #'         main = paste("Estimated density at t = ", t), zlim=c(0,0.2), asp = 1)
 #'
-#' plot(FEMfunction, 0.5)
 
 
-DE.FEM.time <- function(data, data_time, FEMbasis, mesh_time, lambda, lambda_time, fvec=NULL, heatStep=0.1, heatIter=50,
-                        stepProposals=NULL, tol1=1e-4, tol2=0, print=FALSE, nThreads_int=2, nThreads_l=1, nThreads_fold=1,
-                        nfolds=NULL, nsimulations=500,step_method="Fixed_Step", direction_method="BFGS",
-                        preprocess_method="NoCrossValidation", search="tree", isTimeDiscrete=FALSE, flagMass=FALSE,
-                        flagLumped=FALSE)
+DE.FEM.time <- function(data, data_time, FEMbasis, mesh_time, lambda, lambda_time, fvec=NULL, heatStep=0.1, heatIter=10,
+                        stepProposals=NULL, tol1=1e-4, tol2=0, print=FALSE, nfolds=NULL, nsimulations=500,
+                        step_method="Fixed_Step", direction_method="BFGS", preprocess_method="NoCrossValidation",
+                        search="tree", isTimeDiscrete=FALSE, flagMass=FALSE, flagLumped=FALSE)
 {
   if(class(FEMbasis$mesh) == "mesh.2D"){
     ndim = 2
@@ -180,8 +178,7 @@ DE.FEM.time <- function(data, data_time, FEMbasis, mesh_time, lambda, lambda_tim
 
   ###################################### Checking parameters, sizes and conversion #####################################
   checkParametersDE_time(data, data_time, FEMbasis, mesh_time, lambda, lambda_time, step_method, direction_method,
-                         preprocess_method, tol1, tol2, nfolds, nsimulations, nThreads_int, nThreads_l, nThreads_fold,
-                         heatStep, heatIter, search)
+                         preprocess_method, tol1, tol2, nfolds, nsimulations, heatStep, heatIter, search)
 
   ## Converting to format for internal usage
   data = as.matrix(data)
@@ -203,19 +200,19 @@ DE.FEM.time <- function(data, data_time, FEMbasis, mesh_time, lambda, lambda_tim
   if(class(FEMbasis$mesh) == 'mesh.2D'){
 
     bigsol = CPP_FEM.DE_time(data, data_time, FEMbasis, mesh_time, lambda, lambda_time, fvec, heatStep, heatIter, ndim,
-                             mydim, step_method, direction_method, preprocess_method, stepProposals, nThreads_int, nThreads_l, nThreads_fold,
-                             tol1, tol2, print, nfolds, nsimulations, search, isTimeDiscrete, flagMass, flagLumped)
+                             mydim, step_method, direction_method, preprocess_method, stepProposals, tol1, tol2, print,
+                             nfolds, nsimulations, search, isTimeDiscrete, flagMass, flagLumped)
 
   } else if(class(FEMbasis$mesh) == 'mesh.2.5D'){
 
     bigsol = CPP_FEM.manifold.DE_time(data, data_time, FEMbasis, mesh_time, lambda, lambda_time, fvec, heatStep, heatIter, ndim,
                                       mydim, step_method, direction_method, preprocess_method, stepProposals, tol1, tol2, print,
-                                      nThreads_int, nThreads_l, nThreads_fold, nfolds, nsimulations, search, isTimeDiscrete, flagMass, flagLumped)
+                                      nfolds, nsimulations, search, isTimeDiscrete, flagMass, flagLumped)
 
   } else if(class(FEMbasis$mesh) == 'mesh.3D'){
     bigsol = CPP_FEM.volume.DE_time(data, data_time, FEMbasis, mesh_time, lambda, lambda_time, fvec, heatStep, heatIter, ndim,
                                     mydim, step_method, direction_method, preprocess_method, stepProposals, tol1, tol2, print,
-                                    nThreads_int, nThreads_l, nThreads_fold, nfolds, nsimulations, search, isTimeDiscrete, flagMass, flagLumped)
+                                    nfolds, nsimulations, search, isTimeDiscrete, flagMass, flagLumped)
   }
 
   ################################################### Collect Results ##################################################

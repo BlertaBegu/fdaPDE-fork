@@ -18,7 +18,7 @@
 template<UInt ORDER, UInt mydim, UInt ndim>
 SEXP DE_skeleton_time(SEXP Rdata, SEXP Rdata_time, SEXP Rorder, SEXP Rfvec, SEXP RheatStep, SEXP RheatIter, SEXP Rlambda,
                       SEXP Rlambda_time, SEXP Rnfolds, SEXP Rnsim, SEXP RstepProposals, SEXP Rtol1, SEXP Rtol2, SEXP Rprint,
-                      SEXP RnThreads_int, SEXP RnThreads_l, SEXP RnThreads_fold, SEXP Rmesh, SEXP Rmesh_time, SEXP Rsearch, SEXP RisTimeDiscrete, SEXP RflagMass, SEXP RflagLumped,
+                      SEXP Rmesh, SEXP Rmesh_time, SEXP Rsearch, SEXP RisTimeDiscrete, SEXP RflagMass, SEXP RflagLumped,
                       const std::string& step_method, const std::string& direction_method, const std::string& preprocess_method)
 {
 
@@ -34,7 +34,6 @@ SEXP DE_skeleton_time(SEXP Rdata, SEXP Rdata_time, SEXP Rorder, SEXP Rfvec, SEXP
     // Construct data problem object
     DataProblem_time<ORDER, mydim, ndim> dataProblem(Rdata, Rdata_time, Rorder, Rfvec, RheatStep, RheatIter, Rlambda,
                                                      Rlambda_time, Rnfolds, Rnsim, RstepProposals, Rtol1, Rtol2, Rprint,
-                                                     RnThreads_int, RnThreads_l, RnThreads_fold,
                                                      Rsearch, Rmesh, mesh_time, RisTimeDiscrete, RflagMass, RflagLumped);
 
     // Construct functional problem object

@@ -3,7 +3,7 @@
 
 #include "Data_Problem.h"
 
-// This file implements the functionals of the Density Estimation problem 
+// This file implements the functional of the Density Estimation problem
 
 //! @brief A class to store methods regarding the functional of the problem.
 template<UInt ORDER, UInt mydim, UInt ndim>
@@ -16,7 +16,7 @@ class FunctionalProblem{
     const DataProblem<ORDER, mydim, ndim>& dataProblem_;
 
     //! A method to compute the integrals of the functional.
-    std::pair<Real,VectorXr> computeIntegrals(const VectorXr& g) const;
+    std::pair<Real, VectorXr> computeIntegrals(const VectorXr& g) const;
 
   public:
     //! A constructor

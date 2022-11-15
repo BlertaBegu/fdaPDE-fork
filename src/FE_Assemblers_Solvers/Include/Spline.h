@@ -28,7 +28,6 @@ class Spline
                 knots_.push_back(t_instants[n_time_instants-1]);
         }
 
-
         Spline(const std::vector<Real>& t_instants) : 
             Spline(t_instants.data(), t_instants.size()) {}
 

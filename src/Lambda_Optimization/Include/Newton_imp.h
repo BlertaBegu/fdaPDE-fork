@@ -194,6 +194,7 @@ std::pair<lambda::type<1>, UInt> Newton_fd<lambda::type<1>, Real, Extensions...>
         Real error  = std::numeric_limits<Real>::infinity();
         Real h      = 4e-8; //passo modificato
 
+        
         Rprintf("\n Starting Newton's iterations: starting point lambda=%e\n",x);
 
         // Only the first time applied here

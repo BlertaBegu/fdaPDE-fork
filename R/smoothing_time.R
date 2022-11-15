@@ -174,7 +174,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
   }else
   {
     stop("'lambda.selection.criterion' must belong to the following list: 'none', 'grid', 'newton', 'newton_fd'.")
-  }  
+  }
   
   if(is.null(DOF.evaluation))
   {
@@ -228,6 +228,10 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
   {
     warning("An optimized method needs a loss function to perform the evaluation, selecting 'lambda.selection.lossfunction' as 'GCV'")
     optim[3] = 1
+  }
+  if(optim[1]>0 & (is.null(lambdaS) || is.null(lambdaT)))
+  {
+    warning("No initial point is given: automatic initialization of Newton method")
   }
   
     # Search algorithm
@@ -385,15 +389,13 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
       search = search, bary.locations = bary.locations,
       optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
   }
-
   # ---------- Solution -----------
   N = nrow(FEMbasis$mesh$nodes)
   M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1,length(time_mesh) + 2);
-  
+
   dim_1 = ifelse(optim[1]==0 & is.null(DOF.matrix) & optim[3]==0, length(lambdaS), 1)
   dim_2 = ifelse(optim[1]==0 & is.null(DOF.matrix) & optim[3]==0, length(lambdaT), 1)
-
-
+  
   if(is.null(IC) && FLAG_PARABOLIC)
     IC = bigsol[[24]]$coeff
   if(FLAG_PARABOLIC)
@@ -412,10 +414,9 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
     f = array(data=bigsol[[1]][1:(N*M),],dim = c(N*M,dim_1,dim_2))
     g = array(data=bigsol[[1]][(N*M+1):(2*N*M),],dim = c(N*M,dim_1,dim_2))
   }
-  
+
   GCV_ = bigsol[[3]]
-  
-  
+
   if(!is.null(covariates))
   {
     if(optim[1]==0 & is.null(DOF.matrix) & optim[3]==0)
@@ -430,7 +431,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
     ICestimated = NULL
   else
     ICestimated = list(IC.FEM=bigsol[[24]],bestlambdaindex=bigsol[[25]],bestlambda=bigsol[[26]],beta=bigsol[[27]])
-
+    
   bestlambda = bigsol[[4]]+1
 
   if(optim[1]==0)
@@ -469,7 +470,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
     optimization_type = "full DOF grid"
   else
     optimization_type = "uninformative"
-
+  
   optimization = list(
     lambda_solution = bigsol[[16]],
     lambda_position = bestlambda,
@@ -483,8 +484,8 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
   )
 
   time = bigsol[[23]]
-  
-    # Save information of Tree Mesh
+
+  # Save information of Tree Mesh
   tree_mesh = list(
      treelev = bigsol[[6]][1],
      header_orig= bigsol[[7]],
@@ -494,27 +495,26 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
      node_right_child = bigsol[[9]][,3],
      node_box= bigsol[[10]])
 
-   # Reconstruct FEMbasis with tree mesh
-   mesh.class= class(FEMbasis$mesh)
-   if (is.null(FEMbasis$mesh$treelev)) { #if doesn't exist the tree information
-     FEMbasis$mesh = append(FEMbasis$mesh, tree_mesh)
-   } #if already exist the tree information, don't append
+  # Reconstruct FEMbasis with tree mesh
+  mesh.class= class(FEMbasis$mesh)
+  if (is.null(FEMbasis$mesh$treelev)) { #if doesn't exist the tree information
+    FEMbasis$mesh = append(FEMbasis$mesh, tree_mesh)
+  } #if already exist the tree information, don't append
 
-   class(FEMbasis$mesh) = mesh.class
+  class(FEMbasis$mesh) = mesh.class
 
-   # Save information of Barycenter
-   if (is.null(bary.locations)) {
-       bary.locations = list(locations=locations, element_ids = bigsol[[11]], barycenters = bigsol[[12]])
-   }
-   class(bary.locations) = "bary.locations"
-
+  # Save information of Barycenter
+  if (is.null(bary.locations)) {
+      bary.locations = list(locations=locations, element_ids = bigsol[[11]], barycenters = bigsol[[12]])
+  }
+  class(bary.locations) = "bary.locations"
   # Make FEM.time objects
   fit.FEM.time  = FEM.time(f, time_mesh, FEMbasis, FLAG_PARABOLIC)
   PDEmisfit.FEM.time = FEM.time(g, time_mesh, FEMbasis, FLAG_PARABOLIC)
 
   # Prepare return list
   reslist = list(fit.FEM.time = fit.FEM.time, PDEmisfit.FEM.time = PDEmisfit.FEM.time, solution = solution,
-                optimization  = optimization, beta = beta,time = time, ICestimated=ICestimated, bary.locations = bary.locations)
+                optimization  = optimization, beta = beta, time = time, ICestimated=ICestimated, bary.locations = bary.locations)
 
   return(reslist)
 }
